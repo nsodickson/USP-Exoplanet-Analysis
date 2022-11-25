@@ -1,0 +1,16 @@
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+oktopus/__init__.py
+oktopus/likelihood.py
+oktopus/loss.py
+oktopus/models.py
+oktopus/posterior.py
+oktopus/prior.py
+oktopus/version.py
+oktopus.egg-info/PKG-INFO
+oktopus.egg-info/SOURCES.txt
+oktopus.egg-info/dependency_links.txt
+oktopus.egg-info/requires.txt
+oktopus.egg-info/top_level.txt

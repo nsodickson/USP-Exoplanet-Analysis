@@ -1,0 +1,131 @@
+# This file was produced by the NASA Exoplanet Archive  http://exoplanetarchive.ipac.caltech.edu
+# Mon Nov 14 14:05:03 2022
+#
+# User preference: *
+#
+# CONSTRAINT:  where (default_flag = 1
+# CONSTRAINT:  and disc_facility like '%Kepler%'
+# CONSTRAINT:  and soltype like '%Published Confirmed%'
+# CONSTRAINT:  and pl_controv_flag = 0
+# CONSTRAINT:  and pl_orbper < 10)
+#
+# COLUMN pl_name:        Planet Name
+# COLUMN hostname:       Host Name
+# COLUMN pl_letter:      Planet Letter
+# COLUMN hd_name:        HD ID
+# COLUMN hip_name:       HIP ID
+# COLUMN tic_id:         TIC ID
+# COLUMN gaia_id:        GAIA ID
+# COLUMN default_flag:   Default Parameter Set
+# COLUMN sy_snum:        Number of Stars
+# COLUMN sy_pnum:        Number of Planets
+# COLUMN sy_mnum:        Number of Moons
+# COLUMN cb_flag:        Circumbinary Flag
+# COLUMN discoverymethod: Discovery Method
+# COLUMN disc_year:      Discovery Year
+# COLUMN disc_refname:   Discovery Reference
+# COLUMN disc_pubdate:   Discovery Publication Date
+# COLUMN disc_locale:    Discovery Locale
+# COLUMN disc_facility:  Discovery Facility
+# COLUMN disc_telescope: Discovery Telescope
+# COLUMN disc_instrument: Discovery Instrument
+# COLUMN rv_flag:        Detected by Radial Velocity Variations
+# COLUMN pul_flag:       Detected by Pulsar Timing Variations
+# COLUMN ptv_flag:       Detected by Pulsation Timing Variations
+# COLUMN tran_flag:      Detected by Transits
+# COLUMN ast_flag:       Detected by Astrometric Variations
+# COLUMN obm_flag:       Detected by Orbital Brightness Modulations
+# COLUMN micro_flag:     Detected by Microlensing
+# COLUMN etv_flag:       Detected by Eclipse Timing Variations
+# COLUMN ima_flag:       Detected by Imaging
+# COLUMN dkin_flag:      Detected by Disk Kinematics
+# COLUMN soltype:        Solution Type
+# COLUMN pl_controv_flag: Controversial Flag
+# COLUMN pl_refname:     Planetary Parameter Reference
+# COLUMN pl_orbper:      Orbital Period [days]
+# COLUMN pl_orbsmax:     Orbit Semi-Major Axis [au])
+# COLUMN pl_rade:        Planet Radius [Earth Radius]
+# COLUMN pl_radj:        Planet Radius [Jupiter Radius]
+# COLUMN pl_masse:       Planet Mass [Earth Mass]
+# COLUMN pl_massj:       Planet Mass [Jupiter Mass]
+# COLUMN pl_msinie:      Planet Mass*sin(i) [Earth Mass]
+# COLUMN pl_msinij:      Planet Mass*sin(i) [Jupiter Mass]
+# COLUMN pl_cmasse:      Planet Mass*sin(i)/sin(i) [Earth Mass]
+# COLUMN pl_cmassj:      Planet Mass*sin(i)/sin(i) [Jupiter Mass]
+# COLUMN pl_bmasse:      Planet Mass or Mass*sin(i) [Earth Mass]
+# COLUMN pl_bmassj:      Planet Mass or Mass*sin(i) [Jupiter Mass]
+# COLUMN pl_bmassprov:   Planet Mass or Mass*sin(i) Provenance
+# COLUMN pl_dens:        Planet Density [g/cm**3]
+# COLUMN pl_orbeccen:    Eccentricity
+# COLUMN pl_insol:       Insolation Flux [Earth Flux]
+# COLUMN pl_eqt:         Equilibrium Temperature [K]
+# COLUMN pl_orbincl:     Inclination [deg]
+# COLUMN pl_tranmid:     Transit Midpoint [days]
+# COLUMN pl_tsystemref:  Time Reference Frame and Standard
+# COLUMN ttv_flag:       Data show Transit Timing Variations
+# COLUMN pl_imppar:      Impact Parameter
+# COLUMN pl_trandep:     Transit Depth [%]
+# COLUMN pl_trandur:     Transit Duration [hours]
+# COLUMN pl_ratdor:      Ratio of Semi-Major Axis to Stellar Radius
+# COLUMN pl_ratror:      Ratio of Planet to Stellar Radius
+# COLUMN pl_occdep:      Occultation Depth [%]
+# COLUMN pl_orbtper:     Epoch of Periastron [days]
+# COLUMN pl_orblper:     Argument of Periastron [deg]
+# COLUMN pl_rvamp:       Radial Velocity Amplitude [m/s]
+# COLUMN pl_projobliq:   Projected Obliquity [deg]
+# COLUMN pl_trueobliq:   True Obliquity [deg]
+# COLUMN st_refname:     Stellar Parameter Reference
+# COLUMN st_spectype:    Spectral Type
+# COLUMN st_teff:        Stellar Effective Temperature [K]
+# COLUMN st_rad:         Stellar Radius [Solar Radius]
+# COLUMN st_mass:        Stellar Mass [Solar mass]
+# COLUMN st_met:         Stellar Metallicity [dex]
+# COLUMN st_metratio:    Stellar Metallicity Ratio
+# COLUMN st_lum:         Stellar Luminosity [log(Solar)]
+# COLUMN st_logg:        Stellar Surface Gravity [log10(cm/s**2)]
+# COLUMN st_age:         Stellar Age [Gyr]
+# COLUMN st_dens:        Stellar Density [g/cm**3]
+# COLUMN st_vsin:        Stellar Rotational Velocity [km/s]
+# COLUMN st_rotp:        Stellar Rotational Period [days]
+# COLUMN st_radv:        Systemic Radial Velocity [km/s]
+# COLUMN sy_refname:     System Parameter Reference
+# COLUMN rastr:          RA [sexagesimal]
+# COLUMN ra:             RA [deg]
+# COLUMN decstr:         Dec [sexagesimal]
+# COLUMN dec:            Dec [deg]
+# COLUMN glat:           Galactic Latitude [deg]
+# COLUMN glon:           Galactic Longitude [deg]
+# COLUMN elat:           Ecliptic Latitude [deg]
+# COLUMN elon:           Ecliptic Longitude [deg]
+# COLUMN sy_pm:          Total Proper Motion [mas/yr]
+# COLUMN sy_pmra:        Proper Motion (RA) [mas/yr]
+# COLUMN sy_pmdec:       Proper Motion (Dec) [mas/yr]
+# COLUMN sy_dist:        Distance [pc]
+# COLUMN sy_plx:         Parallax [mas]
+# COLUMN sy_bmag:        B (Johnson) Magnitude
+# COLUMN sy_vmag:        V (Johnson) Magnitude
+# COLUMN sy_jmag:        J (2MASS) Magnitude
+# COLUMN sy_hmag:        H (2MASS) Magnitude
+# COLUMN sy_kmag:        Ks (2MASS) Magnitude
+# COLUMN sy_umag:        u (Sloan) Magnitude
+# COLUMN sy_gmag:        g (Sloan) Magnitude
+# COLUMN sy_rmag:        r (Sloan) Magnitude
+# COLUMN sy_imag:        i (Sloan) Magnitude
+# COLUMN sy_zmag:        z (Sloan) Magnitude
+# COLUMN sy_w1mag:       W1 (WISE) Magnitude
+# COLUMN sy_w2mag:       W2 (WISE) Magnitude
+# COLUMN sy_w3mag:       W3 (WISE) Magnitude
+# COLUMN sy_w4mag:       W4 (WISE) Magnitude
+# COLUMN sy_gaiamag:     Gaia Magnitude
+# COLUMN sy_icmag:       I (Cousins) Magnitude
+# COLUMN sy_tmag:        TESS Magnitude
+# COLUMN sy_kepmag:      Kepler Magnitude
+# COLUMN rowupdate:      Date of Last Update
+# COLUMN pl_pubdate:     Planetary Parameter Reference Publication Date
+# COLUMN releasedate:    Release Date
+# COLUMN pl_nnotes:      Number of Notes
+# COLUMN st_nphot:       Number of Photometry Time Series
+# COLUMN st_nrvc:        Number of Radial Velocity Time Series
+# COLUMN st_nspec:       Number of Stellar Spectra Measurements
+# COLUMN pl_nespec:      Number of Emission Spectroscopy Measurements
+# COLUMN pl_ntranspec:   Number of Transmission Spectroscopy Measurements
