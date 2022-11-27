@@ -9,7 +9,7 @@ def produceQuarterPeriodPlots(times, periods):
     plt.xlabel("Time (Days)")
     plt.ylabel("Best fit period (days)")
 
-def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, include_boot=False, n_samples=25):
+def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, time_bin_size=1, include_boot=False, n_samples=25):
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
 
@@ -26,30 +26,34 @@ def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, include_
 
         if include_boot:
             phase_samples, flux_samples = customBootstrap(lc.phase, lc.flux, n_samples)
-            flux_samples = np.apply_along_axis(lambda x: getMedianLine(lc.phase, x, 2, sorted=True), 1, flux_samples)
+            flux_samples = np.apply_along_axis(lambda x: getMedianLine(lc.phase, x, time_bin_size=time_bin_size, sorted=True), 1, flux_samples)
             for p, f in zip(phase_samples, flux_samples):
                 ax.plot(p, f-np.mean(f)-spacing*idx, alpha=0.3, c="orange")
 
-        flux_binned = getMedianLine(lc.phase, lc.flux, 2, sorted=True)
+        flux_binned = getMedianLine(lc.phase, lc.flux, time_bin_size=time_bin_size, sorted=True)
         ax.plot(lc.phase, flux_binned-np.mean(flux_binned)-spacing*idx, c=cmap(idx/len(lightcurves)))
 
     fig.colorbar(cmap_sm, label="Median Quarter Time (Days)", cax=cax)
 
 if __name__ == "__main__":
 
+    # Targets of Intrest: Kepler-78 b, Kepler-1520 b, Kepler-845 b, Kepler-41 b, Kepler-12 b, Kepler-17 b, Kepler-7 b, Kepler-42 c 
+
+
     # Initialize target constants
-    target = "Kepler-78 b"
-    if "Kepler" in target:
+    target = "Kepler-41 b"
+    if target in sp_csv.index:
         target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"])
         target_duration = sp_csv.loc[target, "pl_trandur"]/24
-    if np.isnan(target_duration):
-        target_duration = 1/24
+        if np.isnan(target_duration):
+            target_duration = 1/24
     else:
+        print("Target not found in provided CSV file")
         target_period_range = None
         target_duration = 1/24
     quarters = np.linspace(0, 16, 17, dtype=int)
     lc = LC(np.empty(0), np.empty(0))
-    filter_cutoff = 1
+    filter_cutoff = 0.5
 
     periods = np.zeros_like(quarters, dtype=float)
     median_times = np.zeros_like(quarters, dtype=float)
@@ -73,11 +77,9 @@ if __name__ == "__main__":
         print(f"Number of data points: {len(quarter_lc.time)}, Baseline: {quarter_lc.time[-1]-quarter_lc.time[0]} days")
 
         # Obtaining best fits periods
-        """
         period = getPeriod(quarter_lc.time, quarter_lc.flux, target_duration, period=target_period_range)
         periods[idx] = period
         print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
-        """
 
         # Appending the quarter specific lc for later use
         lc_list[idx] = quarter_lc
@@ -93,13 +95,14 @@ if __name__ == "__main__":
     period_grid = np.arange(period-spacing*100, period+spacing*99, spacing)
     lc.fold(period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
-    spacing = np.nanstd(lc.flux)*2
+    print(f"STD of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
+    spacing = np.nanstd(lc.flux)*4
 
     # Producing a variety of informative plots and interactive plots
     produceBLSPeriodogramPlots(lc.time, lc.flux, kep78b_duration, period=target_period_range)
     produceFoldPlots(lc.time, lc.flux, period, time_bin_size=2)
     produceQuarterFoldPlots(lc_list, median_times, period, spacing, include_boot=True, n_samples=50)
-    # produceQuarterPeriodPlots(median_times, periods)
+    produceQuarterPeriodPlots(median_times, periods)
     # produceFoldPlotsInteractive(lc.time, lc.flux, period_grid, target_duration)
     # produceFoldPlotsAnimation(lc.time, lc.flux, period_grid, target_duration)
 

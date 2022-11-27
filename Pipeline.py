@@ -75,10 +75,14 @@ class LC:
             self.phase, self.flux = self.phase[sort_idx], self.flux[sort_idx]
 
 
-def getPeriodRange(period, baseline=4.1*365, buffer=1/24):
+def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None):
     # In Days
+    if low_buffer is None:
+        low_buffer = buffer
+    if up_buffer is None:
+        up_buffer = buffer
     spacing = 0.01 * (period ** 2 / (baseline)) 
-    return np.arange((period - buffer), (period + buffer), spacing)  
+    return np.arange((period - low_buffer), (period + up_buffer), spacing)  
 
 
 def fillNans(y_data):
@@ -497,12 +501,17 @@ if __name__ == "__main__":
 
     # Initialize Target Constants
     target = "Kepler-78 b"
-    target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"])
-    target_duration = sp_csv.loc[target, "pl_trandur"]/24
-    if np.isnan(target_duration):
+    if target in sp_csv.index:
+        target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"], up_buffer=1)
+        target_duration = sp_csv.loc[target, "pl_trandur"]/24
+        if np.isnan(target_duration):
+            target_duration = 1/24
+    else:
+        print("Target not found in provided CSV file")
+        target_period_range = None
         target_duration = 1/24
     quarter = 2
-    filter_cutoff = 1
+    filter_cutoff = 0.5
 
     print("=" * 100)
 
@@ -515,6 +524,7 @@ if __name__ == "__main__":
     num_nans = fillNans(lc.flux)
     produceTrendPlots(lc.time, lc.flux, filter_cutoff, lowPassGaussian)
     trend = filter(lc.flux, filter_cutoff, lowPassGaussian)
+    # trend = getMedianLine(lc.time, lc.flux, 1, sorted=True)
     lc.flux = lc.flux/trend - 1.0
     lc.time, lc.flux, num_outliers = removeOutliers(lc.time, lc.flux, 8)
     print(f"{num_nans} nan flux values were filled in, {num_outliers} outliers were removed")
