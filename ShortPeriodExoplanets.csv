@@ -1,3 +1,135 @@
+# This file was produced by the NASA Exoplanet Archive  http://exoplanetarchive.ipac.caltech.edu
+# Mon Nov 14 14:05:03 2022
+#
+# User preference: *
+#
+# CONSTRAINT:  where (default_flag = 1
+# CONSTRAINT:  and disc_facility like '%Kepler%'
+# CONSTRAINT:  and soltype like '%Published Confirmed%'
+# CONSTRAINT:  and pl_controv_flag = 0
+# CONSTRAINT:  and pl_orbper < 10)
+#
+# COLUMN pl_name:        Planet Name
+# COLUMN hostname:       Host Name
+# COLUMN pl_letter:      Planet Letter
+# COLUMN hd_name:        HD ID
+# COLUMN hip_name:       HIP ID
+# COLUMN tic_id:         TIC ID
+# COLUMN gaia_id:        GAIA ID
+# COLUMN default_flag:   Default Parameter Set
+# COLUMN sy_snum:        Number of Stars
+# COLUMN sy_pnum:        Number of Planets
+# COLUMN sy_mnum:        Number of Moons
+# COLUMN cb_flag:        Circumbinary Flag
+# COLUMN discoverymethod: Discovery Method
+# COLUMN disc_year:      Discovery Year
+# COLUMN disc_refname:   Discovery Reference
+# COLUMN disc_pubdate:   Discovery Publication Date
+# COLUMN disc_locale:    Discovery Locale
+# COLUMN disc_facility:  Discovery Facility
+# COLUMN disc_telescope: Discovery Telescope
+# COLUMN disc_instrument: Discovery Instrument
+# COLUMN rv_flag:        Detected by Radial Velocity Variations
+# COLUMN pul_flag:       Detected by Pulsar Timing Variations
+# COLUMN ptv_flag:       Detected by Pulsation Timing Variations
+# COLUMN tran_flag:      Detected by Transits
+# COLUMN ast_flag:       Detected by Astrometric Variations
+# COLUMN obm_flag:       Detected by Orbital Brightness Modulations
+# COLUMN micro_flag:     Detected by Microlensing
+# COLUMN etv_flag:       Detected by Eclipse Timing Variations
+# COLUMN ima_flag:       Detected by Imaging
+# COLUMN dkin_flag:      Detected by Disk Kinematics
+# COLUMN soltype:        Solution Type
+# COLUMN pl_controv_flag: Controversial Flag
+# COLUMN pl_refname:     Planetary Parameter Reference
+# COLUMN pl_orbper:      Orbital Period [days]
+# COLUMN pl_orbsmax:     Orbit Semi-Major Axis [au])
+# COLUMN pl_rade:        Planet Radius [Earth Radius]
+# COLUMN pl_radj:        Planet Radius [Jupiter Radius]
+# COLUMN pl_masse:       Planet Mass [Earth Mass]
+# COLUMN pl_massj:       Planet Mass [Jupiter Mass]
+# COLUMN pl_msinie:      Planet Mass*sin(i) [Earth Mass]
+# COLUMN pl_msinij:      Planet Mass*sin(i) [Jupiter Mass]
+# COLUMN pl_cmasse:      Planet Mass*sin(i)/sin(i) [Earth Mass]
+# COLUMN pl_cmassj:      Planet Mass*sin(i)/sin(i) [Jupiter Mass]
+# COLUMN pl_bmasse:      Planet Mass or Mass*sin(i) [Earth Mass]
+# COLUMN pl_bmassj:      Planet Mass or Mass*sin(i) [Jupiter Mass]
+# COLUMN pl_bmassprov:   Planet Mass or Mass*sin(i) Provenance
+# COLUMN pl_dens:        Planet Density [g/cm**3]
+# COLUMN pl_orbeccen:    Eccentricity
+# COLUMN pl_insol:       Insolation Flux [Earth Flux]
+# COLUMN pl_eqt:         Equilibrium Temperature [K]
+# COLUMN pl_orbincl:     Inclination [deg]
+# COLUMN pl_tranmid:     Transit Midpoint [days]
+# COLUMN pl_tsystemref:  Time Reference Frame and Standard
+# COLUMN ttv_flag:       Data show Transit Timing Variations
+# COLUMN pl_imppar:      Impact Parameter
+# COLUMN pl_trandep:     Transit Depth [%]
+# COLUMN pl_trandur:     Transit Duration [hours]
+# COLUMN pl_ratdor:      Ratio of Semi-Major Axis to Stellar Radius
+# COLUMN pl_ratror:      Ratio of Planet to Stellar Radius
+# COLUMN pl_occdep:      Occultation Depth [%]
+# COLUMN pl_orbtper:     Epoch of Periastron [days]
+# COLUMN pl_orblper:     Argument of Periastron [deg]
+# COLUMN pl_rvamp:       Radial Velocity Amplitude [m/s]
+# COLUMN pl_projobliq:   Projected Obliquity [deg]
+# COLUMN pl_trueobliq:   True Obliquity [deg]
+# COLUMN st_refname:     Stellar Parameter Reference
+# COLUMN st_spectype:    Spectral Type
+# COLUMN st_teff:        Stellar Effective Temperature [K]
+# COLUMN st_rad:         Stellar Radius [Solar Radius]
+# COLUMN st_mass:        Stellar Mass [Solar mass]
+# COLUMN st_met:         Stellar Metallicity [dex]
+# COLUMN st_metratio:    Stellar Metallicity Ratio
+# COLUMN st_lum:         Stellar Luminosity [log(Solar)]
+# COLUMN st_logg:        Stellar Surface Gravity [log10(cm/s**2)]
+# COLUMN st_age:         Stellar Age [Gyr]
+# COLUMN st_dens:        Stellar Density [g/cm**3]
+# COLUMN st_vsin:        Stellar Rotational Velocity [km/s]
+# COLUMN st_rotp:        Stellar Rotational Period [days]
+# COLUMN st_radv:        Systemic Radial Velocity [km/s]
+# COLUMN sy_refname:     System Parameter Reference
+# COLUMN rastr:          RA [sexagesimal]
+# COLUMN ra:             RA [deg]
+# COLUMN decstr:         Dec [sexagesimal]
+# COLUMN dec:            Dec [deg]
+# COLUMN glat:           Galactic Latitude [deg]
+# COLUMN glon:           Galactic Longitude [deg]
+# COLUMN elat:           Ecliptic Latitude [deg]
+# COLUMN elon:           Ecliptic Longitude [deg]
+# COLUMN sy_pm:          Total Proper Motion [mas/yr]
+# COLUMN sy_pmra:        Proper Motion (RA) [mas/yr]
+# COLUMN sy_pmdec:       Proper Motion (Dec) [mas/yr]
+# COLUMN sy_dist:        Distance [pc]
+# COLUMN sy_plx:         Parallax [mas]
+# COLUMN sy_bmag:        B (Johnson) Magnitude
+# COLUMN sy_vmag:        V (Johnson) Magnitude
+# COLUMN sy_jmag:        J (2MASS) Magnitude
+# COLUMN sy_hmag:        H (2MASS) Magnitude
+# COLUMN sy_kmag:        Ks (2MASS) Magnitude
+# COLUMN sy_umag:        u (Sloan) Magnitude
+# COLUMN sy_gmag:        g (Sloan) Magnitude
+# COLUMN sy_rmag:        r (Sloan) Magnitude
+# COLUMN sy_imag:        i (Sloan) Magnitude
+# COLUMN sy_zmag:        z (Sloan) Magnitude
+# COLUMN sy_w1mag:       W1 (WISE) Magnitude
+# COLUMN sy_w2mag:       W2 (WISE) Magnitude
+# COLUMN sy_w3mag:       W3 (WISE) Magnitude
+# COLUMN sy_w4mag:       W4 (WISE) Magnitude
+# COLUMN sy_gaiamag:     Gaia Magnitude
+# COLUMN sy_icmag:       I (Cousins) Magnitude
+# COLUMN sy_tmag:        TESS Magnitude
+# COLUMN sy_kepmag:      Kepler Magnitude
+# COLUMN rowupdate:      Date of Last Update
+# COLUMN pl_pubdate:     Planetary Parameter Reference Publication Date
+# COLUMN releasedate:    Release Date
+# COLUMN pl_nnotes:      Number of Notes
+# COLUMN st_nphot:       Number of Photometry Time Series
+# COLUMN st_nrvc:        Number of Radial Velocity Time Series
+# COLUMN st_nspec:       Number of Stellar Spectra Measurements
+# COLUMN pl_nespec:      Number of Emission Spectroscopy Measurements
+# COLUMN pl_ntranspec:   Number of Transmission Spectroscopy Measurements
+
 rowid,pl_name,hostname,pl_letter,hd_name,hip_name,tic_id,gaia_id,default_flag,sy_snum,sy_pnum,sy_mnum,cb_flag,discoverymethod,disc_year,disc_refname,disc_pubdate,disc_locale,disc_facility,disc_telescope,disc_instrument,rv_flag,pul_flag,ptv_flag,tran_flag,ast_flag,obm_flag,micro_flag,etv_flag,ima_flag,dkin_flag,soltype,pl_controv_flag,pl_refname,pl_orbper,pl_orbsmax,pl_rade,pl_radj,pl_masse,pl_massj,pl_msinie,pl_msinij,pl_cmasse,pl_cmassj,pl_bmasse,pl_bmassj,pl_bmassprov,pl_dens,pl_orbeccen,pl_insol,pl_eqt,pl_orbincl,pl_tranmid,pl_tsystemref,ttv_flag,pl_imppar,pl_trandep,pl_trandur,pl_ratdor,pl_ratror,pl_occdep,pl_orbtper,pl_orblper,pl_rvamp,pl_projobliq,pl_trueobliq,st_refname,st_spectype,st_teff,st_rad,st_mass,st_met,st_metratio,st_lum,st_logg,st_age,st_dens,st_vsin,st_rotp,st_radv,sy_refname,rastr,ra,decstr,dec,glat,glon,elat,elon,sy_pm,sy_pmra,sy_pmdec,sy_dist,sy_plx,sy_bmag,sy_vmag,sy_jmag,sy_hmag,sy_kmag,sy_umag,sy_gmag,sy_rmag,sy_imag,sy_zmag,sy_w1mag,sy_w2mag,sy_w3mag,sy_w4mag,sy_gaiamag,sy_icmag,sy_tmag,sy_kepmag,rowupdate,pl_pubdate,releasedate,pl_nnotes,st_nphot,st_nrvc,st_nspec,pl_nespec,pl_ntranspec
 28582,Kepler-78 b,Kepler-78,b,,,TIC 270701667,Gaia DR2 2078373642776670080,1,2,1,0,0,Transit,2013,<a refstr=SANCHIS_OJEDA_ET_AL__2013 href=https://ui.adsabs.harvard.edu/abs/2013ApJ...774...54S/abstract target=ref> Sanchis-Ojeda et al. 2013 </a>,2013-09,Space,Kepler,0.95 m Kepler Telescope,Kepler CCD Array,1,0,0,1,0,1,0,0,0,0,Published Confirmed,0,<a refstr=STASSUN_ET_AL__2017 href=https://ui.adsabs.harvard.edu/abs/2017AJ....153..136S/abstract target=ref>Stassun et al. 2017</a>,0.35500744,,1.121,0.100,1.96716,0.00619,,,,,1.96716,0.00619,Mass,,,,,79.000,,,0,,0.020000,,2.660000,,,,,2.000,,,<a refstr=STASSUN_ET_AL__2017 href=https://ui.adsabs.harvard.edu/abs/2017AJ....153..136S/abstract target=ref>Stassun et al. 2017</a>,,5089.00,0.75,0.84,-0.140,[Fe/H],,4.60,,2.8400,,,,<a refstr=STASSUN_ET_AL__2019 href=https://ui.adsabs.harvard.edu/abs/2019AJ....158..138S/abstract target=ref>TICv8</a>,19h34m58.07s,293.7419543,+44d26m53.71s,44.4482521,11.49947,77.25546,64.47723,311.84170,41.3292811,38.0598000,-16.1109000,124.3760000,8.0112600,12.8650000,11.7170000,10.1840000,9.6750000,9.5860000,,,,,,9.5290000,9.5840000,9.5800000,9.2080000,11.5287000,,10.9555000,11.551,2020-11-13,2017-03,2020-11-19,5,0,0,0,0,0
 5472,KOI-4777.01,KOI-4777,b,,,TIC 158427808,Gaia DR2 2102436351673656704,1,1,1,0,0,Transit,2014,<a refstr=Q1_Q12_KOI_TABLE href=https://exoplanetarchive.ipac.caltech.edu/docs/Kepler_KOI_docs.html target=ref>Q1-Q12 KOI Table</a>,2014-12-04,Space,Kepler,0.95 m Kepler Telescope,Kepler CCD Array,0,0,0,1,0,0,0,0,0,0,Published Confirmed,0,<a refstr=CA_NTILDE_AS_ET_AL__2022 href=https://ui.adsabs.harvard.edu/abs/2022AJ....163....3C/abstract target=ref>Ca&ntilde;as et al. 2022</a>,0.41200000,0.008000,0.510,0.045,99.20000,0.31212,,,,,99.20000,0.31212,Mass,,0.000000,320.00,1180,87.000,2454965.219000,BJD-TDB,0,0.2000,,0.7300000,4.280000,0.01160,,,90.0000,83.000,,,<a refstr=CA_NTILDE_AS_ET_AL__2022 href=https://ui.adsabs.harvard.edu/abs/2022AJ....163....3C/abstract target=ref>Ca&ntilde;as et al. 2022</a>,,3515.00,0.40,0.41,0.100,[Fe/H],,4.77,4.000,8.9000,2.0000,44.00,28.11,<a refstr=STASSUN_ET_AL__2019 href=https://ui.adsabs.harvard.edu/abs/2019AJ....158..138S/abstract target=ref>TICv8</a>,19h09m02.92s,287.2621474,+42d01m56.01s,42.0322257,14.74734,72.95336,63.69486,299.82643,13.8517616,-2.2114000,-13.6741000,172.2450000,5.7772200,18.6080000,16.4130000,13.2210000,12.6710000,12.4490000,,,,,,12.3310000,12.2100000,12.2880000,9.4380000,15.8525000,,14.7079000,15.896,2022-01-10,2022-01,2022-01-10,1,0,0,0,0,0

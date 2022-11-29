@@ -14,8 +14,8 @@ winSize = (10, 5)
 np.set_printoptions(edgeitems=25)
 
 # Dataframe with 1221 Short Period Exoplanets (P < 10 days)
-sp_csv = pd.read_csv("ShortPeriodExoplanets.csv")
-sp_csv.set_index("pl_name", inplace=True)
+sp_csv = pd.read_csv(filepath_or_buffer="ShortPeriodExoplanets.csv", comment="#")
+sp_csv.set_index(keys="pl_name", inplace=True)
 sp_csv.drop_duplicates(inplace=True)
 
 # Kep78 Info, In Days
@@ -45,6 +45,7 @@ class LC:
         plt.title("Light curve")
         plt.xlabel(f"Time ({self.time_unit})")
         plt.ylabel("Flux")
+
         plt.show()
 
     def getTime(self):
@@ -75,42 +76,42 @@ class LC:
             self.phase, self.flux = self.phase[sort_idx], self.flux[sort_idx]
 
 
-def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None):
+def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None, spacing_coeff=0.01):
     # In Days
     if low_buffer is None:
         low_buffer = buffer
     if up_buffer is None:
         up_buffer = buffer
-    spacing = 0.01 * (period ** 2 / (baseline)) 
-    return np.arange((period - low_buffer), (period + up_buffer), spacing)  
+    spacing = spacing_coeff * (period ** 2 / baseline) 
+    return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
-def fillNans(y_data):
-    x_data = np.indices(y_data.shape)[0]
-    isnan = np.isnan(y_data)
-    nan_x = x_data[isnan].astype(int)
-    nan_y = np.interp(nan_x, x_data[~isnan], y_data[~isnan])
-    y_data[nan_x] = nan_y
+def fillNans(y):
+    x = np.indices(y.shape)[0]
+    isnan = np.isnan(y)
+    nan_x = x[isnan].astype(int)
+    nan_y = np.interp(nan_x, x[~isnan], y[~isnan])
+    y[nan_x] = nan_y
     return len(nan_x)
 
 
-def removeOutliers(x_data, y_data, n_sigma):
+def removeOutliers(x, y, n_sigma):
     num_outliers = 0
-    mean = np.nanmean(y_data)
-    std = np.nanstd(y_data)
-    x_data_clean = np.empty(0)
-    y_data_clean = np.empty(0)
-    for x, y in zip(x_data, y_data):
-        if np.abs(y-mean) < n_sigma * std:
-            x_data_clean = np.append(x_data_clean, x)
-            y_data_clean = np.append(y_data_clean, y)
+    mean = np.nanmean(y)
+    std = np.nanstd(y)
+    x_clean = np.empty(0)
+    y_clean = np.empty(0)
+    for x, y in zip(x, y):
+        if np.abs(y - mean) < n_sigma * std:
+            x_clean = np.append(x_clean, x)
+            y_clean = np.append(y_clean, y)
         elif not np.isnan(y):
             num_outliers += 1
-    return x_data_clean, y_data_clean, num_outliers
+    return x_clean, y_clean, num_outliers
 
 
 def lowPassGaussian(freq, freq_cutoff):
-    gaussian = lambda x: math.e ** ((-1 / 2) * (x / freq_cutoff) ** 2)
+    gaussian = lambda x: math.e ** ((-0.5) * (x / freq_cutoff) ** 2)
     return np.apply_along_axis(gaussian, 0, freq)
 
 
@@ -124,12 +125,16 @@ def obtainFitsLightCurve(quarter=None, write_meta=True, *args, **kwargs):
         return results[quarter].download().to_fits(flux_column_name="SAP_FLUX")
 
 
-def dataFromHDU(hdu: astropy.io.fits.HDUList, include_image=False, flux_column_name="SAP_FLUX"):
+def openFitsLightCurve(fits_file, include_image=False):
+    with astropy.io.fits.open(name=fits_file, mode="readonly") as hdu:
+        return dataFromHDU(hdu=hdu, include_image=include_image)
+
+
+def dataFromHDU(hdu, include_image=False, flux_column_name="SAP_FLUX"):
     # Extracting the data from the HDUList
-    b = hdu[1].data
-    h = hdu[1].header
-    flux = b[flux_column_name]
-    time = b['time']
+    data = hdu[1].data
+    flux = data[flux_column_name]
+    time = data['time']
     
     if include_image:
         image = hdu[2].data
@@ -140,24 +145,19 @@ def dataFromHDU(hdu: astropy.io.fits.HDUList, include_image=False, flux_column_n
         return LC(time, flux)
 
 
-def openFitsLightCurve(fits_file: str, include_image=False):
-    with astropy.io.fits.open(fits_file, mode="readonly") as hdu:
-        return dataFromHDU(hdu, include_image=include_image)
-
-
-def filter(flux, cutoff, filter_type):
+def filter(flux, filter_type, cutoff):
     # Obtaining the applying the filter
     n = len(flux)
-    freq = scipy.fft.rfftfreq(n, 1/48)
-    filter = filter_type(freq, cutoff)
+    frequency = scipy.fft.rfftfreq(n, 1/48)
+    filter = filter_type(frequency, cutoff)
     fft_data = scipy.fft.rfft(flux)
-    flux_filtered = scipy.fft.irfft(fft_data*filter, n)
+    flux_filtered = scipy.fft.irfft(fft_data * filter, n)
 
     # Return the processed signal
     return flux_filtered
 
 
-def produceTrendPlots(time, flux, cutoff, filter_type):
+def produceTrendPlots(time, flux, filter_type, cutoff):
     plt.figure(figsize=winSize)
 
     # 1) Plotting the original SAP Light curves
@@ -168,15 +168,14 @@ def produceTrendPlots(time, flux, cutoff, filter_type):
     plt.ylabel("Flux (electrons/second)")
 
     n = len(flux)
-    step = 1 / 48  # There are 48 observations per day for long cadence light curves
     intensity = scipy.fft.rfft(flux)
-    frequency = scipy.fft.rfftfreq(n, step)
+    frequency = scipy.fft.rfftfreq(n, 1/48)
     cutoff_idx = np.where(frequency > cutoff)[0][0]
 
-    # 2) Plotting the fourier transform of the sap light curves (excluding the zero frequency)
+    # 2) Plotting the fourier transform of the sap light curves
     plt.subplot(2, 3, 2)
     plt.plot(frequency, np.abs(intensity))
-    plt.plot(cutoff, np.abs(intensity)[cutoff_idx], color="r", marker="o", ms=10, label="Filter Cutoff")
+    plt.plot(cutoff, np.abs(intensity)[cutoff_idx], color="r", marker="o", markersize=10, label="Filter Cutoff")
     plt.axvline(cutoff, color="r")
     plt.title("Fourier Transform of SAP flux")
     plt.yscale("log")
@@ -190,14 +189,14 @@ def produceTrendPlots(time, flux, cutoff, filter_type):
     plt.subplot(2, 3, 3)
     plt.plot(frequency, filter)
     plt.title("Lowpass Box Filter Frequency Response")
-    plt.plot(cutoff, filter[cutoff_idx], color="r", marker="o", ms=10, label="Filter Cutoff")
+    plt.plot(cutoff, filter[cutoff_idx], color="r", marker="o", markersize=10, label="Filter Cutoff")
     plt.axvline(cutoff, color="r")
     plt.xlabel("Frequency")
     plt.legend()
 
-    # Filtering and padding the light curves
+    # Filtering the light curves
     fft_data = scipy.fft.rfft(flux)
-    flux_filtered = scipy.fft.irfft(fft_data*filter, n)
+    flux_filtered = scipy.fft.irfft(fft_data * filter, n)
 
     # 4) Plotting the trend removed from the light curve
     plt.subplot(2, 3, 4)
@@ -217,16 +216,16 @@ def produceTrendPlots(time, flux, cutoff, filter_type):
 
     # 6) Plotting the original sap light curve divided by the filtered light curve
     plt.subplot(2, 3, 6)
-    plt.plot(time, flux/flux_filtered - 1.0)
+    plt.plot(time, flux / flux_filtered - 1.0)
     plt.title("Low Pass Trend Removed")
     plt.xlabel("Time (Days)")
     plt.ylabel("Flux (Normalized Units)")
 
     # 6.5) Plotting the Savitzky-Golay Filtered Data
     """
-    flux_filtered_savgol = scipy.signal.savgol_filter(flux, 3, 0)
+    flux_filtered_savgol = scipy.signal.savgol_filter(x=flux, window_length=3, polyorder=0)
     plt.subplot(2, 3, 6)
-    plt.plot(time, flux/flux_filtered_savgol)
+    plt.plot(time, flux / flux_filtered_savgol)
     plt.title("Low Pass Trend Removed Using Savitzky-Golay")
     plt.xlabel("Time (Days)")
     plt.ylabel("Flux (Normalized Units)")
@@ -236,8 +235,8 @@ def produceTrendPlots(time, flux, cutoff, filter_type):
 def getPeriod(time, flux, duration, period=None):
     model = astropy.timeseries.BoxLeastSquares(time, flux)
     if period is None:
-        period = model.autoperiod(duration, frequency_factor=1)
-    periodogram = model.power(period, duration)
+        period = model.autoperiod(duration=duration, frequency_factor=1)
+    periodogram = model.power(period=period, duration=duration)
     return period[np.argmax(periodogram.power)]
 
 
@@ -245,8 +244,8 @@ def produceBLSPeriodogramPlots(time, flux, duration, period=None, is_78b=False):
     plt.figure(figsize=winSize)
     model = astropy.timeseries.BoxLeastSquares(time, flux)
     if period is None:
-        period = model.autoperiod(duration, frequency_factor=1)
-    periodogram = model.power(period, duration, objective="snr")
+        period = model.autoperiod(duration=duration, frequency_factor=1)
+    periodogram = model.power(period=period, duration=duration, objective="snr")
     best = period[np.argmax(periodogram.power)]
 
     # 1) Plotting the original SAP Light curves
@@ -272,25 +271,16 @@ def produceBLSPeriodogramPlots(time, flux, duration, period=None, is_78b=False):
 
 
 def fold(time, period):
-    return time % period - period/2
-
-
-def getMedianLine(phase, flux, time_bin_size, sorted=False):
-    if not sorted:
-        sort_index = np.argsort(phase)
-        phase_sorted, flux_sorted = phase[sort_index], flux[sort_index]
-        return phase_sorted, scipy.signal.medfilt(flux_sorted, kernel_size=time_bin_size*24*2-1)
-    else:
-        return scipy.signal.medfilt(flux, kernel_size=time_bin_size*24*2-1)
+    return time % period - period / 2
 
 
 def produceFoldPlots(time, flux, period, time_bin_size=5):
-    # time_bin_size is In Days, Approximately
-
     plt.figure(figsize=winSize)
 
     phase = fold(time, period)
-    phase_sorted, flux_binned = getMedianLine(phase, flux, time_bin_size)
+    sort_index = np.argsort(phase)
+    phase_sorted, flux_sorted = phase[sort_index], flux[sort_index]
+    flux_binned = scipy.signal.medfilt(flux_sorted, kernel_size=time_bin_size * 24 * 2 - 1)
 
     plt.scatter(phase, flux, s=0.5, label="Phase folded light curve")
     plt.plot(phase_sorted, flux_binned, color="r", label="Binned phase folded light curve")
@@ -299,20 +289,20 @@ def produceFoldPlots(time, flux, period, time_bin_size=5):
     plt.ylabel("Flux (Normalized Units)")
     
 
-def produceFoldPlotsAnimation(time, flux, period_range, duration, write=False):
+def produceFoldPlotsAnimation(time, flux, period_grid, duration, write=False):
     fig, (ax1, ax2) = plt.subplots(2, 1)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     fig.suptitle("Phase Folded Light Curve and BLS Power With Varying Periods")
 
     plt.subplot(2, 1, 1)
     ax1.set_xlim(-0.2, 0.2)
-    ax1.set_ylim(np.min(flux)-np.std(flux), np.max(flux)+np.std(flux))
+    ax1.set_ylim(np.min(flux) - np.std(flux), np.max(flux) + np.std(flux))
     scatter, = ax1.plot([], [], linewidth=0, marker='o', markersize=0.5)
     plt.xlabel("Phase")
     plt.ylabel("Flux (Normalized Units)")
 
     model = astropy.timeseries.BoxLeastSquares(time, flux)
-    periodogram = model.power(period_range, duration)
+    periodogram = model.power(period=period_grid, duration=duration)
 
     plt.subplot(2, 1, 2)
     ax2.plot(periodogram.period, periodogram.power)
@@ -328,22 +318,22 @@ def produceFoldPlotsAnimation(time, flux, period_range, duration, write=False):
     def animate(i):
         phase = fold(time, i)
         scatter.set_data(phase, flux)
-        point.set_data([i], periodogram.power[np.where(period_range == i)])
+        point.set_data([i], periodogram.power[np.where(period_grid == i)])
         return scatter, point,
 
     writer = matplotlib.animation.FFMpegWriter(fps=30)
 
-    anim = matplotlib.animation.FuncAnimation(fig, func=animate, init_func=init, frames=period_range, interval=50, blit=True, repeat=False)
+    anim = matplotlib.animation.FuncAnimation(fig=fig, func=animate, init_func=init, frames=period_grid, interval=50, blit=True, repeat=False)
 
     if write:
-        anim.save("FoldedAnimation.mp4", writer)
+        anim.save(filename="FoldedAnimation.mp4", writer=writer)
 
     plt.show()
 
 
-def produceFoldPlotsInteractive(time, flux, period_range, duration, initial_period=None):
+def produceFoldPlotsInteractive(time, flux, period_grid, duration, initial_period=None):
     if initial_period is None:
-        initial_period = period_range[len(period_range) // 2]
+        initial_period = period_grid[len(period_grid) // 2]
 
     fig, (ax1, ax2) = plt.subplots(2, 1)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
@@ -356,9 +346,9 @@ def produceFoldPlotsInteractive(time, flux, period_range, duration, initial_peri
     plt.xlabel("Phase")
     plt.ylabel("Flux (Normalized Units)")
 
-    model = astropy.timeseries.BoxLeastSquares(time, flux)
-    periodogram = model.power(period_range, duration)
-    loc = periodogram.power[np.where(period_range == initial_period)]
+    model = astropy.timeseries.BoxLeastSquares(t=time, y=flux)
+    periodogram = model.power(period=period_grid, duration=duration)
+    loc = periodogram.power[np.where(period_grid == initial_period)]
 
     plt.subplot(2, 1, 2)
     ax2.plot(periodogram.period, periodogram.power)
@@ -369,11 +359,11 @@ def produceFoldPlotsInteractive(time, flux, period_range, duration, initial_peri
     def update(val):
         phase = fold(time, val)
         scatter.set_data(phase, flux)
-        point.set_data([val], periodogram.power[np.where(period_range == val)])
+        point.set_data([val], periodogram.power[np.where(period_grid == val)])
         fig.canvas.draw_idle()
 
     period_ax = plt.axes([0.13, 0.02, 0.75, 0.03])
-    period_slider = matplotlib.widgets.Slider(period_ax, "Period", period_range[0], period_range[-1], valstep=period_range, valinit=initial_period)
+    period_slider = matplotlib.widgets.Slider(ax=period_ax, label="Period", valmin=period_grid[0], valmax=period_grid[-1], valstep=period_grid, valinit=initial_period)
     period_slider.on_changed(update)
 
     plt.show()
@@ -384,14 +374,14 @@ def cut(time, flux, period):
     flux_cut = []
     cut = 0
     for idx in range(1, len(time)):
-        if time[idx] % period < time[idx-1] % period:
+        if time[idx] % period < time[idx - 1] % period:
             time_cut.append(time[cut:idx])
             flux_cut.append(flux[cut:idx])
             cut = idx
 
     time_cut = np.array(time_cut, dtype=object)
     flux_cut = np.array(flux_cut, dtype=object)
-    return np.stack((time_cut, flux_cut), axis=-1)
+    return np.stack(arrays=(time_cut, flux_cut), axis=-1)
 
 
 def produceSingleTransitPlotsAnimation(transits_cut, phase, flux, period, write=False):
@@ -399,9 +389,9 @@ def produceSingleTransitPlotsAnimation(transits_cut, phase, flux, period, write=
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     fig.suptitle("Varying transits plotted over the complete folded light curve")
 
-    ax.set_xlim(np.min(phase)-np.std(phase), np.max(phase) + np.std(phase))
-    ax.set_ylim(np.min(flux)-np.std(flux), np.max(flux)+np.std(flux))
-    folded, = ax.plot([], [], label="Complete folded light curve", lw=0, marker='o', markersize=0.5)
+    ax.set_xlim(np.min(phase) - np.std(phase), np.max(phase) + np.std(phase))
+    ax.set_ylim(np.min(flux) - np.std(flux), np.max(flux) + np.std(flux))
+    folded, = ax.plot([], [], lw=0, marker='o', markersize=0.5, label="Complete folded light curve")
     transit, = ax.plot([], [], color="r", label="Nth transit")
     plt.xlabel("Phase")
     plt.ylabel("Flux (Normalized Units)") 
@@ -421,10 +411,10 @@ def produceSingleTransitPlotsAnimation(transits_cut, phase, flux, period, write=
 
     writer = matplotlib.animation.FFMpegWriter(fps=10)
 
-    anim = matplotlib.animation.FuncAnimation(fig, animate, init_func=init, frames=transits_cut, interval=20, blit=True)
+    anim = matplotlib.animation.FuncAnimation(fig=fig, func=animate, init_func=init, frames=transits_cut, interval=20, blit=True)
 
     if write:
-        anim.save("TransitAnimation.mp4", writer)
+        anim.save(filename="TransitAnimation.mp4", writer=writer)
 
     plt.show()
 
@@ -438,10 +428,10 @@ def produceSingleTransitPlotsInteractive(transits_cut, phase, flux, period):
 
     transit_time, transit_flux = transits_cut[0]
     transit_phase = fold(transit_time, period)
-    folded, = ax.plot(phase, flux, label="Complete folded light curve", lw=0, marker='o', markersize=0.5)
+    folded, = ax.plot(phase, flux, lw=0, marker='o', markersize=0.5, label="Complete folded light curve")
     transit, = ax.plot(transit_phase, transit_flux, color="r", label="Nth transit")
-    minimum, = ax.plot(transit_phase[np.argmin(transit_flux)], np.min(transit_flux), label="Min", marker='o', markersize=4, color='b')
-    maximum, = ax.plot(transit_phase[np.argmax(transit_flux)], np.max(transit_flux), label="Max", marker='o', markersize=4, color='g')
+    minimum, = ax.plot(transit_phase[np.argmin(transit_flux)], np.min(transit_flux), color='b', marker='o', markersize=4, label="Min",)
+    maximum, = ax.plot(transit_phase[np.argmax(transit_flux)], np.max(transit_flux), color='g', marker='o', markersize=4, label="Max")
     plt.xlabel("Phase")
     plt.ylabel("Flux (Normalized Units)") 
     plt.legend()
@@ -456,21 +446,21 @@ def produceSingleTransitPlotsInteractive(transits_cut, phase, flux, period):
         fig.canvas.draw_idle()
 
     transit_ax = plt.axes([0.13, 0.02, 0.75, 0.03])
-    transit_slider = matplotlib.widgets.Slider(transit_ax, "Number transit", 0, n_transits-1, valinit=0, valstep=range(n_transits))
+    transit_slider = matplotlib.widgets.Slider(ax=transit_ax, label="Number transit", valmin=0, valmax=n_transits - 1, valstep=np.arange(0, n_transits), valinit=0)
     transit_slider.on_changed(update)
 
     plt.show()
 
 
-def customBootstrap(x_data, y_data, n_samples):
-    x_samples = np.zeros((n_samples, x_data.shape[0]))
-    y_samples = np.zeros((n_samples, y_data.shape[0]))
-    sample_idx = np.indices(y_data.shape)[0]
+def customBootstrap(x, y, n_samples):
+    x_samples = np.zeros((n_samples, x.shape[0]))
+    y_samples = np.zeros((n_samples, y.shape[0]))
+    sample_idx = np.indices(y.shape)[0]
 
     for idx in range(n_samples):
-        resample_idx = np.sort(np.random.choice(sample_idx, size=y_data.shape))
-        x_samples[idx] = x_data[resample_idx]
-        y_samples[idx] = y_data[resample_idx]
+        resample_idx = np.sort(np.random.choice(a=sample_idx, size=y.shape))
+        x_samples[idx] = x[resample_idx]
+        y_samples[idx] = y[resample_idx]
     
     return x_samples, y_samples
 
@@ -483,10 +473,10 @@ def customResidualBootstrap(data, n_samples, block_size, smooth_func):
     samples = np.zeros((n_samples, sample.shape[0]))
 
     for n in range(n_samples):
-        for idx in range(len(residuals)-block_size):
+        for idx in range(len(residuals) - block_size):
             residual_block = residuals[idx:idx + block_size]
             smooth_block = smooth_data[idx:idx + block_size]
-            samples[n][idx:idx + block_size] = smooth_block + np.random.choice(residual_block, size=residual_block.shape)
+            samples[n][idx:idx + block_size] = smooth_block + np.random.choice(a=residual_block, size=residual_block.shape)
     
     return samples[:, :-block_size]
 
@@ -497,43 +487,47 @@ if __name__ == "__main__":
     Target List:
     target: Kepler-78b, notes: primary target for analysis
     target: Kepler-1520b, notes: disintegrating planet
+    Kepler-41 b, notes: hot Jupiter
+    Kepler-12 b, notes: hot Jupiter
+    Kepler-17 b, notes: transit timing variations
+    Kepler-7 b, notes: hot Jupiter
+    Kepler-42 c, notes: extremely short period
     """
 
     # Initialize Target Constants
     target = "Kepler-78 b"
     if target in sp_csv.index:
-        target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"], up_buffer=1)
-        target_duration = sp_csv.loc[target, "pl_trandur"]/24
+        target_period_range = getPeriodRange(period=sp_csv.loc[target, "pl_orbper"])
+        target_duration = sp_csv.loc[target, "pl_trandur"] / 24
         if np.isnan(target_duration):
+            print("Target duration not found in provided CSV file")
             target_duration = 1/24
     else:
-        print("Target not found in provided CSV file")
+        print("Warning, target not found in provided CSV file")
         target_period_range = None
         target_duration = 1/24
     quarter = 2
-    filter_cutoff = 0.5
+    filter_cutoff = 1
 
     print("=" * 100)
 
     # Obtain data using lightkurve (Warning happens on following line)
     hdu = obtainFitsLightCurve(quarter=quarter, write_meta=False, target=target, mission="Kepler", exptime="long")
-    lc = dataFromHDU(hdu, flux_column_name="FLUX")
+    lc = dataFromHDU(hdu=hdu, flux_column_name="FLUX")
     print(f"Quarter: {quarter}")
 
     # Preprocess data by removing Nan values, and filtering out long term trends
     num_nans = fillNans(lc.flux)
-    produceTrendPlots(lc.time, lc.flux, filter_cutoff, lowPassGaussian)
-    trend = filter(lc.flux, filter_cutoff, lowPassGaussian)
-    # trend = getMedianLine(lc.time, lc.flux, 1, sorted=True)
+    produceTrendPlots(time=lc.time, flux=lc.flux, filter_type=lowPassGaussian, cutoff=filter_cutoff)
+    trend = filter(lc.flux, filter_type=lowPassGaussian, cutoff=filter_cutoff)
     lc.flux = lc.flux/trend - 1.0
-    lc.time, lc.flux, num_outliers = removeOutliers(lc.time, lc.flux, 8)
+    lc.time, lc.flux, num_outliers = removeOutliers(lc.time, lc.flux, n_sigma=8)
     print(f"{num_nans} nan flux values were filled in, {num_outliers} outliers were removed")
     print(f"Number of data points: {len(lc.time)}, Baseline: {lc.time[-1] - lc.time[0]} days")
 
     # Obtaining new data and constants with a variety of data analysis techniques
-    period = getPeriod(lc.time, lc.flux, target_duration, period=target_period_range)
-    spacing = 0.01 * (period ** 2 / (lc.time[-1] - lc.time[0]))
-    period_grid = np.arange(period-spacing*100, period+spacing*99, spacing)
+    period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
+    period_grid = getPeriodRange(period=period, buffer=1/(24*60))
     lc.fold(period)
     transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
@@ -541,22 +535,24 @@ if __name__ == "__main__":
     print("=" * 100)
 
     # Producing a variety of informative plots and interactive plots
-    produceBLSPeriodogramPlots(lc.time, lc.flux, kep78b_duration, period=target_period_range)
-    produceFoldPlots(lc.time, lc.flux, period, time_bin_size=1)
-    produceFoldPlotsInteractive(lc.time, lc.flux, period_grid, target_duration)
-    produceSingleTransitPlotsInteractive(transits_cut, lc.phase, lc.flux, period)
+    produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
+    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, time_bin_size=1)
+    produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
+    # produceSingleTransitPlotsInteractive(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
     # produceFoldPlotsAnimation(lc.time, lc.flux, period_grid, target_duration)
+    # produceSingleTransitPlotsAnimation(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
 
     # Bootstrap Test
     # ===============================================================================================
     # Instantiating the figure and pre-processing the folded transit data
-    samples = 100
+    n_samples = 100
     fig, (ax1) = plt.subplots(1, 1)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
-    ax1.set_title(f"Bootstrapped Folded Light Curve ({samples} samples)")  
+    ax1.set_title(f"Bootstrapped Folded Light Curve ({n_samples} samples)")  
     # ax2.set_title("Residuals Used for Bootstrapping")  
     lc.sortToPhase()
-    smooth_func = lambda x: filter(x, 1.0, lowPassGaussian)
+    smooth_func = lambda x: filter(x, filter_type=lowPassGaussian, cutoff=filter_cutoff)
+    time_bin_size = 1
 
     # Custom tsmoothie smoother to override smoother restrictions
     class CustomSmoother(smoother._BaseSmoother):
@@ -578,23 +574,23 @@ if __name__ == "__main__":
 
     # Preforming residual resampling with tmoosthie functions 
     """
-    bts_smoother = CustomSmoother(lambda x: np.expand_dims(smooth_func(x), axis=0))
-    bts = bootstrap.BootstrappingWrapper(bts_smoother, bootstrap_type="mbb", block_length=10)
-    samples = bts.sample(flux, n_samples=samples)
+    bts_smoother = CustomSmoother(smooth_func=lambda x: np.expand_dims(smooth_func(x), axis=0))
+    bts = bootstrap.BootstrappingWrapper(Smoother=bts_smoother, bootstrap_type="mbb", block_length=10)
+    samples = bts.sample(lc.flux, n_samples=n_samples)
     """
 
     # Preforming residual resampling with a custom function
     """
-    samples = customResidualBootstrap(flux, samples, 10, smooth_func)
+    samples = customResidualBootstrap(lc.flux, n_samples=n_samples, block_size=10, smooth_func=smooth_func)
     """
 
     # Preforming classic resampling with a custom function
-    phase_samples, samples = customBootstrap(lc.phase, lc.flux, samples)
+    phase_samples, samples = customBootstrap(lc.phase, lc.flux, n_samples=n_samples)
 
     # Plotting the original folded transit data and the bootstrap samples on top
-    flux_binned = getMedianLine(lc.phase, lc.flux, 2, sorted=True)
+    flux_binned = scipy.signal.medfilt(lc.flux, kernel_size=time_bin_size * 24 * 2 - 1)
     smooth_data = smooth_func(lc.flux)
-    samples = np.apply_along_axis(lambda x: getMedianLine(lc.phase, x, 2, sorted=True), 1, samples)
+    samples = np.apply_along_axis(lambda x: scipy.signal.medfilt(x, kernel_size=time_bin_size * 24 * 2 - 1), 1, samples)
     upper = np.apply_along_axis(lambda x: np.percentile(x, 95), 0, samples)
     lower = np.apply_along_axis(lambda x: np.percentile(x, 5), 0, samples)
 
@@ -602,8 +598,8 @@ if __name__ == "__main__":
     # ax1.fill_between(phase, lower, upper, alpha=0.8, color="orange")
     for p, f in zip(phase_samples, samples):
         ax1.plot(p, f, alpha=0.3, color="orange")
-    ax1.plot(lc.phase, flux_binned, color="red")
-    # ax1.plot(phase, smooth_data, color="green")
+    ax1.plot(lc.phase, flux_binned, color="r")
+    # ax1.plot(phase, smooth_data, color="g")
     # ax2.scatter(lc.phase, lc.flux-smooth_data, s=2)
     # ===============================================================================================
 
