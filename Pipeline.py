@@ -86,6 +86,20 @@ def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_bu
     return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
+def bin(y, bin_size=None, time_bin_size=None, mode="median"):
+    if bin_size is None and time_bin_size is None:
+        bin_size = 47  # Adjust for data without a 30 minute cadence
+    elif bin_size is None:
+        bin_size = time_bin_size * 48 - 1  # Adjust for data without a 30 minute cadence
+    if mode == "median":
+        return scipy.signal.medfilt(y, kernel_size=bin_size)
+    elif mode == "mean":
+        kernel = np.ones(bin_size) / bin_size
+        return np.convolve(np.pad(y, (bin_size // 2, bin_size // 2)), kernel, mode="valid")
+    else:
+        print("Invalid mode for binning")
+
+
 def fillNans(y):
     x = np.indices(y.shape)[0]
     isnan = np.isnan(y)
@@ -274,13 +288,13 @@ def fold(time, period):
     return time % period - period / 2
 
 
-def produceFoldPlots(time, flux, period, time_bin_size=5):
+def produceFoldPlots(time, flux, period, bin_mode="median", time_bin_size=5):
     plt.figure(figsize=winSize)
 
     phase = fold(time, period)
     sort_index = np.argsort(phase)
     phase_sorted, flux_sorted = phase[sort_index], flux[sort_index]
-    flux_binned = scipy.signal.medfilt(flux_sorted, kernel_size=time_bin_size * 24 * 2 - 1)
+    flux_binned = bin(flux_sorted, time_bin_size=time_bin_size, mode=bin_mode)
 
     plt.scatter(phase, flux, s=0.5, label="Phase folded light curve")
     plt.plot(phase_sorted, flux_binned, color="r", label="Binned phase folded light curve")
@@ -536,7 +550,7 @@ if __name__ == "__main__":
 
     # Producing a variety of informative plots and interactive plots
     produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
-    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, time_bin_size=1)
+    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="median", time_bin_size=1)
     produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
     # produceSingleTransitPlotsInteractive(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
     # produceFoldPlotsAnimation(lc.time, lc.flux, period_grid, target_duration)
@@ -552,7 +566,6 @@ if __name__ == "__main__":
     # ax2.set_title("Residuals Used for Bootstrapping")  
     lc.sortToPhase()
     smooth_func = lambda x: filter(x, filter_type=lowPassGaussian, cutoff=filter_cutoff)
-    time_bin_size = 1
 
     # Custom tsmoothie smoother to override smoother restrictions
     class CustomSmoother(smoother._BaseSmoother):
@@ -588,9 +601,9 @@ if __name__ == "__main__":
     phase_samples, samples = customBootstrap(lc.phase, lc.flux, n_samples=n_samples)
 
     # Plotting the original folded transit data and the bootstrap samples on top
-    flux_binned = scipy.signal.medfilt(lc.flux, kernel_size=time_bin_size * 24 * 2 - 1)
+    flux_binned = bin(lc.flux, bin_mode="median", time_bin_size=1)
     smooth_data = smooth_func(lc.flux)
-    samples = np.apply_along_axis(lambda x: scipy.signal.medfilt(x, kernel_size=time_bin_size * 24 * 2 - 1), 1, samples)
+    samples = np.apply_along_axis(lambda x: bin(x, bin_mode="median", time_bin_size=1), 1, samples)
     upper = np.apply_along_axis(lambda x: np.percentile(x, 95), 0, samples)
     lower = np.apply_along_axis(lambda x: np.percentile(x, 5), 0, samples)
 

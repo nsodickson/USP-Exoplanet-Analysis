@@ -9,7 +9,7 @@ def produceQuarterPeriodPlots(median_times, periods):
     plt.xlabel("Time (Days)")
     plt.ylabel("Best fit period (days)")
 
-def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, time_bin_size=5, include_boot=False, n_samples=25):
+def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, bin_mode="median", time_bin_size=5, include_boot=False, n_samples=25):
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
 
@@ -26,11 +26,11 @@ def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, time_bin
 
         if include_boot:
             phase_samples, flux_samples = customBootstrap(lc.phase, lc.flux, n_samples=n_samples)
-            flux_samples = np.apply_along_axis(lambda x: scipy.signal.medfilt(x, kernel_size=time_bin_size * 24 * 2 - 1), 1, flux_samples)
+            flux_samples = np.apply_along_axis(lambda x: bin(x, time_bin_size=time_bin_size, mode=bin_mode), 1, flux_samples)
             for p, f in zip(phase_samples, flux_samples):
                 ax.plot(p, f - np.mean(f) - spacing * idx, alpha=0.3, c="orange")
 
-        flux_binned = scipy.signal.medfilt(lc.flux, kernel_size=time_bin_size * 24 * 2 - 1)
+        flux_binned = bin(lc.flux, time_bin_size=time_bin_size, mode=bin_mode)
         ax.plot(lc.phase, flux_binned - np.mean(flux_binned) - spacing * idx, c=cmap(idx / len(lightcurves)))
 
     fig.colorbar(cmap_sm, label="Median Quarter Time (Days)", cax=cax)
@@ -38,7 +38,7 @@ def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, time_bin
 if __name__ == "__main__":
 
     # Initialize target constants
-    target = "Kepler-41 b"
+    target = "Kepler-78 b"
     if target in sp_csv.index:
         target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"])
         target_duration = sp_csv.loc[target, "pl_trandur"] / 24
@@ -100,8 +100,8 @@ if __name__ == "__main__":
 
     # Producing a variety of informative plots and interactive plots
     produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
-    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, time_bin_size=1)
-    produceQuarterFoldPlots(lightcurves=lc_list, median_times=median_times, period=period, spacing=spacing, time_bin_size=1, include_boot=True, n_samples=50)
+    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="mean", time_bin_size=1)
+    produceQuarterFoldPlots(lightcurves=lc_list, median_times=median_times, period=period, spacing=spacing, bin_mode="mean", time_bin_size=1, include_boot=True, n_samples=50)
     # produceQuarterPeriodPlots(median_times=median_times, periods=periods)
     # produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
     # produceSingleTransitPlotsInteractive(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
