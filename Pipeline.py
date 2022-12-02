@@ -601,9 +601,9 @@ if __name__ == "__main__":
     phase_samples, samples = customBootstrap(lc.phase, lc.flux, n_samples=n_samples)
 
     # Plotting the original folded transit data and the bootstrap samples on top
-    flux_binned = bin(lc.flux, bin_mode="median", time_bin_size=1)
+    flux_binned = bin(lc.flux, mode="median", time_bin_size=1)
     smooth_data = smooth_func(lc.flux)
-    samples = np.apply_along_axis(lambda x: bin(x, bin_mode="median", time_bin_size=1), 1, samples)
+    samples = np.apply_along_axis(lambda x: bin(x, mode="median", time_bin_size=1), 1, samples)
     upper = np.apply_along_axis(lambda x: np.percentile(x, 95), 0, samples)
     lower = np.apply_along_axis(lambda x: np.percentile(x, 5), 0, samples)
 

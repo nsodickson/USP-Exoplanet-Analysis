@@ -38,7 +38,7 @@ def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, bin_mode
 if __name__ == "__main__":
 
     # Initialize target constants
-    target = "Kepler-78 b"
+    target = "Kepler-1520 b"
     if target in sp_csv.index:
         target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"])
         target_duration = sp_csv.loc[target, "pl_trandur"] / 24
