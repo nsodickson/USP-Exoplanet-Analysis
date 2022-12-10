@@ -91,12 +91,12 @@ if __name__ == "__main__":
 
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
-    period_grid = getPeriodRange(period=period, buffer=1/(24*60))
+    period_grid = getPeriodRange(period=period, buffer=1 / (24 * 60))
     lc.fold(period)
     transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
-    # print(f"STD of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
-    spacing = np.nanstd(lc.flux)*2.5
+    # print(f"Standard deviation of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
+    spacing = np.nanstd(lc.flux) * 2.5    
 
     # Producing a variety of informative plots and interactive plots
     produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)

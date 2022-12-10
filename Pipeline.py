@@ -82,7 +82,7 @@ def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_bu
         low_buffer = buffer
     if up_buffer is None:
         up_buffer = buffer
-    spacing = spacing_coeff * (period ** 2 / baseline) 
+    spacing = spacing_coeff * (period  ** 2 / baseline) 
     return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
