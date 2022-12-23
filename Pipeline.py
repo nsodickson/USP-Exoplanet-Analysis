@@ -27,7 +27,7 @@ kep1520b_baseline = 1459.4893630790102
 kep1520b_period = 0.6535555
 kep1520b_duration = 0.0679167
 
-
+# Class to encapsulate a stellar light curve, consisting of time data, flux data, and phase data if the light curve has been folded
 class LC:
     def __init__(self, time, flux):
         self.time = time
@@ -55,8 +55,8 @@ class LC:
     def zip(self):
         return zip(self.time, self.flux)
     
-    def fold(self, period, copy=True):
-        self.phase = fold(self.time, period)
+    def fold(self, period, epoch=0, copy=True):
+        self.phase = fold(self.time, period, epoch=epoch)
         self.data["phase"] = self.phase
         self.has_folded = True
         if copy:
@@ -79,6 +79,36 @@ class LC:
 
     def copy(self):
         return copy.deepcopy(self)
+
+
+def obtainFitsLightCurve(quarter=None, write_meta=False, *args, **kwargs):
+    results = lk.search_lightcurve(*args, **kwargs)
+    if write_meta: 
+        results.table.write("DataTable.csv", format="ascii.csv", overwrite=True)
+    if quarter is None:
+        return results.download_all().stitch().to_fits(flux_column_name="SAP_FLUX")
+    else:
+        return results[quarter].download().to_fits(flux_column_name="SAP_FLUX")
+
+
+def openFitsLightCurve(fits_file, include_image=False):
+    with astropy.io.fits.open(name=fits_file, mode="readonly") as hdu:
+        return dataFromHDU(hdu=hdu, include_image=include_image)
+
+
+def dataFromHDU(hdu, include_image=False, flux_column_name="SAP_FLUX"):
+    # Extracting the data from the HDUList
+    data = hdu[1].data
+    flux = data[flux_column_name]
+    time = data['time']
+    
+    if include_image:
+        image = hdu[2].data
+        lc = LC(time, flux)
+        lc.data["image"] = image
+        return lc
+    else:
+        return LC(time, flux)
 
 
 def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None, spacing_coeff=0.01):
@@ -161,39 +191,9 @@ def customResidualBootstrap(x, n_samples, block_size, smooth_func):
     return samples[:, :-block_size]
 
 
-def lowPassGaussian(freq, freq_cutoff):
-    gaussian = lambda x: math.e ** ((-0.5) * (x / freq_cutoff) ** 2)
-    return np.apply_along_axis(gaussian, 0, freq)
-
-
-def obtainFitsLightCurve(quarter=None, write_meta=True, *args, **kwargs):
-    results = lk.search_lightcurve(*args, **kwargs)
-    if write_meta: 
-        results.table.write("DataTable.csv", format="ascii.csv", overwrite=True)
-    if quarter is None:
-        return results.download_all().stitch().to_fits(flux_column_name="SAP_FLUX")
-    else:
-        return results[quarter].download().to_fits(flux_column_name="SAP_FLUX")
-
-
-def openFitsLightCurve(fits_file, include_image=False):
-    with astropy.io.fits.open(name=fits_file, mode="readonly") as hdu:
-        return dataFromHDU(hdu=hdu, include_image=include_image)
-
-
-def dataFromHDU(hdu, include_image=False, flux_column_name="SAP_FLUX"):
-    # Extracting the data from the HDUList
-    data = hdu[1].data
-    flux = data[flux_column_name]
-    time = data['time']
-    
-    if include_image:
-        image = hdu[2].data
-        lc = LC(time, flux)
-        lc.data["image"] = image
-        return lc
-    else:
-        return LC(time, flux)
+def lowPassGaussian(frequency, cutoff):
+    gaussian = lambda x: math.e ** ((-0.5) * (x / cutoff) ** 2)
+    return np.apply_along_axis(gaussian, 0, frequency)
 
 
 def filter(flux, filter_type, cutoff):
@@ -321,8 +321,8 @@ def produceBLSPeriodogramPlots(time, flux, duration, period=None, is_78b=False):
     return best
 
 
-def fold(time, period):
-    return time % period / period
+def fold(time, period, epoch=0):
+    return (time - epoch) / period % 1
 
 
 def produceFoldPlots(time, flux, period, bin_mode="median", time_bin_size=5):
@@ -534,7 +534,7 @@ if __name__ == "__main__":
     print("=" * 100)
 
     # Obtain data using lightkurve (Warning happens on following line)
-    hdu = obtainFitsLightCurve(quarter=quarter, write_meta=False, target=target, mission="Kepler", exptime="long")
+    hdu = obtainFitsLightCurve(quarter=quarter, target=target, mission="Kepler", exptime="long")
     lc = dataFromHDU(hdu=hdu, flux_column_name="FLUX")
     print(f"Quarter: {quarter}")
 

@@ -40,6 +40,8 @@ def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
 
+    bin_size = time_bin_size * 48 - 1
+
     ax.set_title("Folded Light Curves Weighted With Varying Angular Frequencies")
     ax.set_xlabel("Phase")
     cmap = matplotlib.cm.get_cmap("winter")
@@ -48,8 +50,16 @@ def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
     cax = divider.append_axes("right", size="2%", pad=0.1)
 
     for idx, f in enumerate(frequencies):
-        # Code where weighted mean takes place
-        pass
+        # Test 1: Calculating the weighted moving average of the flux values clamping the kernel at the edges so the shape stays the same
+        """
+        flux_binned = np.zeros_like(lc.phase)
+        for i, flux in enumerate(lc.flux):
+            print(f)
+            low = max(0, i - bin_size // 2)
+            up = min(len(lc.flux), i + bin_size // 2)
+            flux_binned[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
+        ax.plot(lc.phase, flux_binned - np.mean(flux_binned) - spacing * idx, c=cmap(idx / len(frequencies)))
+        """
         
     fig.colorbar(cmap_sm, label="Frequency", cax=cax)
 
@@ -80,7 +90,7 @@ if __name__ == "__main__":
         print("=" * 100)
 
         # Obtain data using lightkurve (Warning happens on following line)
-        hdu = obtainFitsLightCurve(quarter=quarter, write_meta=False, target=target, mission="Kepler", exptime="long")
+        hdu = obtainFitsLightCurve(quarter=quarter, target=target, mission="Kepler", exptime="long")
         quarter_lc = dataFromHDU(hdu=hdu, flux_column_name="FLUX")
         time_list[idx] = np.median(quarter_lc.time)
         print(f"Quarter: {quarter}")
@@ -116,12 +126,12 @@ if __name__ == "__main__":
     transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
     # print(f"Standard deviation of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
-    spacing = np.nanstd(lc.flux) * 2.5    
+    spacing = np.nanstd(lc.flux) * 2.5  
 
-    frequencies = [2 * math.pi / (baseline / i) for i in range(1, 16)]
+    frequencies = [2 * math.pi * i for i in range(16)]
 
     # Producing a variety of informative plots and interactive plots
-    # produceFrequencyBinPlots(lc_folded, spacing, frequencies)
+    # produceFrequencyBinPlots(lc_folded, 2, frequencies)
     # produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
     # produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="mean", time_bin_size=1)
     # produceQuarterFoldPlots(lightcurves=lc_list, time_list=time_list, period=period, spacing=spacing, bin_mode="mean", time_bin_size=1, include_boot=True, n_samples=50)
