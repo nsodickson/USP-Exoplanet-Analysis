@@ -4,11 +4,9 @@ import matplotlib
 from matplotlib import pyplot as plt
 import numpy as np
 import scipy
-from tsmoothie import bootstrap
-from tsmoothie import smoother
-from tsmoothie.utils_func import _check_data, _check_output
 import math
 import pandas as pd
+import copy
 
 winSize = (10, 5)
 np.set_printoptions(edgeitems=25)
@@ -30,11 +28,10 @@ kep1520b_duration = 0.0679167
 
 
 class LC:
-    def __init__(self, time, flux, time_unit="days"):
+    def __init__(self, time, flux):
         self.time = time
         self.flux = flux
         self.data = {"time": self.time, "flux": flux}
-        self.time_unit = time_unit
         self.has_folded = False
 
     def __repr__(self):
@@ -57,10 +54,14 @@ class LC:
     def zip(self):
         return zip(self.time, self.flux)
     
-    def fold(self, period):
+    def fold(self, period, copy=True):
         self.phase = fold(self.time, period)
         self.data["phase"] = self.phase
         self.has_folded = True
+        if copy:
+            out = self.copy()
+            out.sortToPhase()
+            return out
 
     def append(self, lc):
         self.time = np.append(self.time, lc.time)
@@ -75,6 +76,9 @@ class LC:
             sort_idx = np.argsort(self.phase)
             self.phase, self.flux = self.phase[sort_idx], self.flux[sort_idx]
 
+    def copy(self):
+        return copy.deepcopy(self)
+
 
 def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None, spacing_coeff=0.01):
     # In Days
@@ -86,7 +90,7 @@ def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_bu
     return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
-def bin(y, bin_size=None, time_bin_size=None, weight_func=None, mode="median"):
+def bin(y, bin_size=None, time_bin_size=None, weights=None, mode="median"):
     if bin_size is None and time_bin_size is None:
         bin_size = 47  # Adjust for data without a 30 minute cadence
     elif bin_size is None:
@@ -94,11 +98,11 @@ def bin(y, bin_size=None, time_bin_size=None, weight_func=None, mode="median"):
     if mode == "median":
         return scipy.signal.medfilt(y, kernel_size=bin_size)
     elif mode == "mean":
-        if weight_func is None:
-            kernel = np.ones(bin_size) / bin_size
-        else:
-            kernel = weight_func(bin_size)
-        return np.convolve(np.pad(y, (bin_size // 2, bin_size // 2)), kernel, mode="valid")
+        if weights is None:
+            weights = np.ones(bin_size) / bin_size
+        elif len(weights) != bin_size:
+            print("Warning, the length of the weights kernel isn't the same as bin_size")
+        return np.convolve(np.pad(y, (bin_size // 2, bin_size // 2)), weights, mode="valid")
     else:
         print("Invalid mode for binning")
 
@@ -125,6 +129,35 @@ def removeOutliers(x, y, n_sigma):
         elif not np.isnan(y):
             num_outliers += 1
     return x_clean, y_clean, num_outliers
+
+
+def customBootstrap(x, y, n_samples):
+    x_samples = np.zeros((n_samples, x.shape[0]))
+    y_samples = np.zeros((n_samples, y.shape[0]))
+    sample_idx = np.indices(y.shape)[0]
+
+    for idx in range(n_samples):
+        resample_idx = np.sort(np.random.choice(a=sample_idx, size=y.shape))
+        x_samples[idx] = x[resample_idx]
+        y_samples[idx] = y[resample_idx]
+    
+    return x_samples, y_samples
+
+
+def customResidualBootstrap(x, n_samples, block_size, smooth_func):
+    sample = np.pad(x, (0, block_size), mode="median")
+
+    x_smooth = smooth_func(sample)
+    residuals = sample - x_smooth
+    samples = np.zeros((n_samples, sample.shape[0]))
+
+    for n in range(n_samples):
+        for idx in range(len(residuals) - block_size):
+            residual_block = residuals[idx:idx + block_size]
+            smooth_block = x_smooth[idx:idx + block_size]
+            samples[n][idx:idx + block_size] = smooth_block + np.random.choice(a=residual_block, size=residual_block.shape)
+    
+    return samples[:, :-block_size]
 
 
 def lowPassGaussian(freq, freq_cutoff):
@@ -288,7 +321,7 @@ def produceBLSPeriodogramPlots(time, flux, duration, period=None, is_78b=False):
 
 
 def fold(time, period):
-    return time % period - period / 2
+    return time % period / period
 
 
 def produceFoldPlots(time, flux, period, bin_mode="median", time_bin_size=5):
@@ -469,35 +502,6 @@ def produceSingleTransitPlotsInteractive(transits_cut, phase, flux, period):
     plt.show()
 
 
-def customBootstrap(x, y, n_samples):
-    x_samples = np.zeros((n_samples, x.shape[0]))
-    y_samples = np.zeros((n_samples, y.shape[0]))
-    sample_idx = np.indices(y.shape)[0]
-
-    for idx in range(n_samples):
-        resample_idx = np.sort(np.random.choice(a=sample_idx, size=y.shape))
-        x_samples[idx] = x[resample_idx]
-        y_samples[idx] = y[resample_idx]
-    
-    return x_samples, y_samples
-
-
-def customResidualBootstrap(data, n_samples, block_size, smooth_func):
-    sample = np.pad(data, (0, block_size), mode="median")
-
-    smooth_data = smooth_func(sample)
-    residuals = sample - smooth_data
-    samples = np.zeros((n_samples, sample.shape[0]))
-
-    for n in range(n_samples):
-        for idx in range(len(residuals) - block_size):
-            residual_block = residuals[idx:idx + block_size]
-            smooth_block = smooth_data[idx:idx + block_size]
-            samples[n][idx:idx + block_size] = smooth_block + np.random.choice(a=residual_block, size=residual_block.shape)
-    
-    return samples[:, :-block_size]
-
-
 if __name__ == "__main__":
 
     """
@@ -545,7 +549,8 @@ if __name__ == "__main__":
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
     period_grid = getPeriodRange(period=period, buffer=1/(24*60))
-    lc.fold(period)
+    lc_folded = lc.fold(period)
+    lc_folded.data["test"] = "test"
     transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
 
@@ -554,7 +559,7 @@ if __name__ == "__main__":
     # Producing a variety of informative plots and interactive plots
     produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
     produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="median", time_bin_size=1)
-    produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
+    # produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
     # produceSingleTransitPlotsInteractive(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
     # produceFoldPlotsAnimation(lc.time, lc.flux, period_grid, target_duration)
     # produceSingleTransitPlotsAnimation(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
@@ -567,56 +572,30 @@ if __name__ == "__main__":
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     ax1.set_title(f"Bootstrapped Folded Light Curve ({n_samples} samples)")  
     # ax2.set_title("Residuals Used for Bootstrapping")  
-    lc.sortToPhase()
     smooth_func = lambda x: filter(x, filter_type=lowPassGaussian, cutoff=filter_cutoff)
-
-    # Custom tsmoothie smoother to override smoother restrictions
-    class CustomSmoother(smoother._BaseSmoother):
-        def __init__(self, smooth_func):
-            super(CustomSmoother, self).__init__()
-            self.smooth_func = smooth_func
-         
-        def smooth(self, data):
-            _check_data(data)
-
-            smooth = self.smooth_func(data)
-
-            _check_output(smooth)
-            _check_output(data)
-
-            self._store_results(smooth_data=smooth, data=data)
-
-            return self
-
-    # Preforming residual resampling with tmoosthie functions 
-    """
-    bts_smoother = CustomSmoother(smooth_func=lambda x: np.expand_dims(smooth_func(x), axis=0))
-    bts = bootstrap.BootstrappingWrapper(Smoother=bts_smoother, bootstrap_type="mbb", block_length=10)
-    samples = bts.sample(lc.flux, n_samples=n_samples)
-    """
 
     # Preforming residual resampling with a custom function
     """
-    samples = customResidualBootstrap(lc.flux, n_samples=n_samples, block_size=10, smooth_func=smooth_func)
+    samples = customResidualBootstrap(lc_folded.flux, n_samples=n_samples, block_size=10, smooth_func=smooth_func)
     """
 
     # Preforming classic resampling with a custom function
-    phase_samples, samples = customBootstrap(lc.phase, lc.flux, n_samples=n_samples)
+    phase_samples, samples = customBootstrap(lc_folded.phase, lc_folded.flux, n_samples=n_samples)
 
     # Plotting the original folded transit data and the bootstrap samples on top
-    flux_binned = bin(lc.flux, mode="median", time_bin_size=1)
-    smooth_data = smooth_func(lc.flux)
+    flux_binned = bin(lc_folded.flux, mode="median", time_bin_size=1)
+    smooth_data = smooth_func(lc_folded.flux)
     samples = np.apply_along_axis(lambda x: bin(x, mode="median", time_bin_size=1), 1, samples)
     upper = np.apply_along_axis(lambda x: np.percentile(x, 95), 0, samples)
     lower = np.apply_along_axis(lambda x: np.percentile(x, 5), 0, samples)
 
-    ax1.scatter(lc.phase, lc.flux, s=2)
+    ax1.scatter(lc_folded.phase, lc_folded.flux, s=2)
     # ax1.fill_between(phase, lower, upper, alpha=0.8, color="orange")
     for p, f in zip(phase_samples, samples):
         ax1.plot(p, f, alpha=0.3, color="orange")
-    ax1.plot(lc.phase, flux_binned, color="r")
+    ax1.plot(lc_folded.phase, flux_binned, color="r")
     # ax1.plot(phase, smooth_data, color="g")
-    # ax2.scatter(lc.phase, lc.flux-smooth_data, s=2)
+    # ax2.scatter(lc_folded.phase, lc_folded.flux-smooth_data, s=2)
     # ===============================================================================================
 
     plt.show()
