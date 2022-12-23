@@ -86,7 +86,7 @@ def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_bu
     return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
-def bin(y, bin_size=None, time_bin_size=None, mode="median"):
+def bin(y, bin_size=None, time_bin_size=None, weight_func=None, mode="median"):
     if bin_size is None and time_bin_size is None:
         bin_size = 47  # Adjust for data without a 30 minute cadence
     elif bin_size is None:
@@ -94,7 +94,10 @@ def bin(y, bin_size=None, time_bin_size=None, mode="median"):
     if mode == "median":
         return scipy.signal.medfilt(y, kernel_size=bin_size)
     elif mode == "mean":
-        kernel = np.ones(bin_size) / bin_size
+        if weight_func is None:
+            kernel = np.ones(bin_size) / bin_size
+        else:
+            kernel = weight_func(bin_size)
         return np.convolve(np.pad(y, (bin_size // 2, bin_size // 2)), kernel, mode="valid")
     else:
         print("Invalid mode for binning")

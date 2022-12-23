@@ -15,7 +15,7 @@ print()
 for i in range(1, 26):
     period = baseline * (1 / i)
     freq = 2 * math.pi / period
-    print(f"Index: {i}, Period (Days): {period}, Anglar Frequency (1/Days) {freq}")
+    print(f"Index: {i}, Period (Days): {period}, Angular Frequency (1/Days) {freq}")
     plt.plot(np.sin(x * freq) - spacing * i, color="red")
     plt.plot(np.cos(x * freq) - spacing * i, color="blue")
 print()

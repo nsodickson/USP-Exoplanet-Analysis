@@ -18,8 +18,9 @@ def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, bin_mode
     cmap = matplotlib.cm.get_cmap("winter")
     cmap_sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=matplotlib.colors.Normalize(median_times[0], median_times[-1]))
     divider = make_axes_locatable(ax)
-    cax = divider.append_axes('right', size='2%', pad=0.1)
+    cax = divider.append_axes("right", size="2%", pad=0.1)
 
+    # Pipeline to apply to every quarter
     for idx, lc in enumerate(lightcurves):
         lc.fold(period)
         lc.sortToPhase()
@@ -34,6 +35,25 @@ def produceQuarterFoldPlots(lightcurves, median_times, period, spacing, bin_mode
         ax.plot(lc.phase, flux_binned - np.mean(flux_binned) - spacing * idx, c=cmap(idx / len(lightcurves)))
 
     fig.colorbar(cmap_sm, label="Median Quarter Time (Days)", cax=cax)
+
+def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
+        fig, ax = plt.subplots()
+        fig.set(figheight=winSize[1], figwidth=winSize[0])
+
+        ax.set_title("Folded Light Curves Weighted With Varying Angular Frequencies")
+        ax.set_xlabel("Phase")
+        cmap = matplotlib.cm.get_cmap("winter")
+        cmap_sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=matplotlib.colors.Normalize(frequencies[0], frequencies[-1]))
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="2%", pad=0.1)
+
+        for idx, f in enumerate(frequencies):
+            flux_binned_sin = bin(lc.time, time_bin_size=time_bin_size, weight_func=lambda x: np.sin(f * x), mode="mean")
+            flux_binned_cos = bin(lc.time, time_bin_size=time_bin_size, weight_func=lambda x: np.cos(f * x), mode="mean")
+            ax.plot(lc.phase, flux_binned_sin - np.mean(flux_binned_sin) - spacing * idx, c=cmap(idx / len(frequencies)))
+            ax.plot(lc.phase, flux_binned_cos - np.mean(flux_binned_sin) - spacing * idx, c=cmap(idx / len(frequencies)))
+        
+        fig.colorbar(cmap_sm, label="Frequency", cax=cax)
 
 if __name__ == "__main__":
 
@@ -57,6 +77,7 @@ if __name__ == "__main__":
     median_times = np.zeros_like(quarters, dtype=float)
     lc_list = np.zeros_like(quarters, dtype=object)
 
+    # Pipeline to apply to every quarter
     for idx, quarter in enumerate(quarters):
         print("=" * 100)
 
