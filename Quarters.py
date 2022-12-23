@@ -1,5 +1,4 @@
 from Pipeline import *
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 def produceQuarterPeriodPlots(time_list, period_list):
     plt.figure(figsize=winSize)

@@ -2,6 +2,7 @@ import astropy
 import lightkurve as lk
 import matplotlib
 from matplotlib import pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import scipy
 import math
