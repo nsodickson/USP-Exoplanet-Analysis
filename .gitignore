@@ -398,8 +398,6 @@ FodyWeavers.xsd
 *.sln.iml
 
 # Python Virtual Environments
-/MacosVenv
-/WindowsVenv
 /venv
 
 # Python testing file
