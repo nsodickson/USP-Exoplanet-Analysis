@@ -60,6 +60,9 @@ def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
             flux_binned[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
         ax.plot(lc.phase, flux_binned - np.mean(flux_binned) - spacing * idx, c=cmap(idx / len(frequencies)))
         """
+        # Test 2: Simply multiplying the flux by the sine curve
+        flux_weighted = lc.flux * np.cos(lc.phase * f)
+        ax.plot(lc.phase, flux_weighted - np.mean(flux_weighted) - spacing * idx, c=cmap(idx / len(frequencies)))
         
     fig.colorbar(cmap_sm, label="Frequency", cax=cax)
 
@@ -126,12 +129,12 @@ if __name__ == "__main__":
     transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
     # print(f"Standard deviation of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
-    spacing = np.nanstd(lc.flux) * 2.5  
+    spacing = np.nanstd(lc.flux) * 5  
 
     frequencies = [2 * math.pi * i for i in range(16)]
 
     # Producing a variety of informative plots and interactive plots
-    # produceFrequencyBinPlots(lc_folded, 2, frequencies)
+    produceFrequencyBinPlots(lc_folded, spacing, frequencies)
     # produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
     # produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="mean", time_bin_size=1)
     # produceQuarterFoldPlots(lightcurves=lc_list, time_list=time_list, period=period, spacing=spacing, bin_mode="mean", time_bin_size=1, include_boot=True, n_samples=50)
