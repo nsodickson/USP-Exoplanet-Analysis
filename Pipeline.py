@@ -55,27 +55,28 @@ class LC:
     def zip(self):
         return zip(self.time, self.flux)
     
-    def fold(self, period, epoch=0, copy=True):
+    def fold(self, period, epoch=0, inplace=True):
         self.phase = fold(self.time, period, epoch=epoch)
         self.data["phase"] = self.phase
         self.has_folded = True
-        if copy:
-            out = self.copy()
-            out.sortToPhase()
-            return out
+        if inplace:
+            return self
 
     def append(self, lc):
         self.time = np.append(self.time, lc.time)
         self.flux = np.append(self.flux, lc.flux)
+        return self
     
     def sortToTime(self):
         sort_idx = np.argsort(self.time)
         self.time, self.flux = self.time[sort_idx], self.flux[sort_idx]
+        return self
 
     def sortToPhase(self):
         if self.has_folded:
             sort_idx = np.argsort(self.phase)
             self.phase, self.flux = self.phase[sort_idx], self.flux[sort_idx]
+        return self
 
     def copy(self):
         return copy.deepcopy(self)
@@ -550,7 +551,7 @@ if __name__ == "__main__":
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
     period_grid = getPeriodRange(period=period, buffer=1/(24*60))
-    lc_folded = lc.fold(period)
+    lc_folded = lc.fold(period).copy().sortToPhase()
     lc_folded.data["test"] = "test"
     transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
