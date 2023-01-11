@@ -342,6 +342,7 @@ def produceFoldPlots(time, flux, period, bin_mode="median", time_bin_size=5):
     
 
 def produceFoldPlotsAnimation(time, flux, period_grid, duration, write=False):
+    # Creates an animation of the flux folded on a given period grid of period and bls powers of the period grid
     fig, (ax1, ax2) = plt.subplots(2, 1)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     fig.suptitle("Phase Folded Light Curve and BLS Power With Varying Periods")
@@ -384,6 +385,7 @@ def produceFoldPlotsAnimation(time, flux, period_grid, duration, write=False):
 
 
 def produceFoldPlotsInteractive(time, flux, period_grid, duration, initial_period=None):
+    # Creates an interactive animation of the flux folded on a given period grid of period and bls powers of the period grid
     if initial_period is None:
         initial_period = period_grid[len(period_grid) // 2]
 
@@ -422,6 +424,7 @@ def produceFoldPlotsInteractive(time, flux, period_grid, duration, initial_perio
 
 
 def cut(time, flux, period): 
+    # Cuts the time and flux values into individual periods
     time_cut = []
     flux_cut = []
     cut = 0
@@ -437,6 +440,7 @@ def cut(time, flux, period):
 
 
 def produceSingleTransitPlotsAnimation(transits_cut, phase, flux, period, write=False):
+    # Creates an animation of shifting individual transits overlayed on the entire folded light curve
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     fig.suptitle("Varying transits plotted over the complete folded light curve")
@@ -472,6 +476,7 @@ def produceSingleTransitPlotsAnimation(transits_cut, phase, flux, period, write=
 
 
 def produceSingleTransitPlotsInteractive(transits_cut, phase, flux, period):
+    # Creates an interactive animation of shifting individual transits overlayed on the entire folded light curve
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     fig.suptitle("Varying transits plotted over the complete folded light curve")
@@ -541,7 +546,7 @@ if __name__ == "__main__":
 
     # Preprocess data by removing Nan values, and filtering out long term trends
     num_nans = fillNans(lc.flux)
-    produceTrendPlots(time=lc.time, flux=lc.flux, filter_type=lowPassGaussian, cutoff=filter_cutoff)
+    # produceTrendPlots(time=lc.time, flux=lc.flux, filter_type=lowPassGaussian, cutoff=filter_cutoff)
     trend = filter(lc.flux, filter_type=lowPassGaussian, cutoff=filter_cutoff)
     lc.flux = lc.flux/trend - 1.0
     lc.time, lc.flux, num_outliers = removeOutliers(lc.time, lc.flux, n_sigma=8)
@@ -552,19 +557,15 @@ if __name__ == "__main__":
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
     period_grid = getPeriodRange(period=period, buffer=1/(24*60))
     lc_folded = lc.fold(period).copy().sortToPhase()
-    lc_folded.data["test"] = "test"
-    transits_cut = cut(lc.time, lc.flux, period)
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
 
     print("=" * 100)
 
     # Producing a variety of informative plots and interactive plots
-    produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
-    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="median", time_bin_size=1)
+    # produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
+    # produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="median", time_bin_size=1)
     # produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
-    # produceSingleTransitPlotsInteractive(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
     # produceFoldPlotsAnimation(lc.time, lc.flux, period_grid, target_duration)
-    # produceSingleTransitPlotsAnimation(transits_cut=transits_cut[:100], phase=lc.phase, flux=lc.flux, period=period)
 
     # Bootstrap Test
     # ===============================================================================================

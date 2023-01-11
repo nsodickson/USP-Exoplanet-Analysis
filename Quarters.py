@@ -35,37 +35,38 @@ def produceQuarterFoldPlots(lc_list, time_list, period, spacing, bin_mode="media
     fig.colorbar(cmap_sm, label="Median Quarter Time (Days)", cax=cax)
 
 def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
-    # Precondition: lc is folded
+    # Precondition: lc is folded on the best fit period
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
 
-    bin_size = time_bin_size * 48 - 1
+    bin_size = time_bin_size * 48 - 1  # Adjust for differently spaced data (currently 30 minute cadence)
 
-    ax.set_title("Folded Light Curves Weighted With Varying Angular Frequencies")
+    ax.set_title("Folded Light Curves Weighted With Varying Angular Frequencies (Red=Sine, Blue=Cosine)")
     ax.set_xlabel("Phase")
-    cmap = matplotlib.cm.get_cmap("winter")
-    cmap_sm = matplotlib.cm.ScalarMappable(cmap=cmap, norm=matplotlib.colors.Normalize(frequencies[0], frequencies[-1]))
-    divider = make_axes_locatable(ax)
-    cax = divider.append_axes("right", size="2%", pad=0.1)
 
     for idx, f in enumerate(frequencies):
         # Test 1: Calculating the weighted moving average of the flux values clamping the kernel at the edges so the shape stays the same
         """
-        flux_binned = np.zeros_like(lc.phase)
+        flux_avg_sin = np.zeros_like(lc.phase)
+        flux_avg_cos = np.zeros_like(lc.phase)
         for i, flux in enumerate(lc.flux):
-            print(f)
-            low = max(0, i - bin_size // 2)
-            up = min(len(lc.flux), i + bin_size // 2)
-            flux_binned[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
-        ax.plot(lc.phase, flux_binned - np.mean(flux_binned) - spacing * idx, c=cmap(idx / len(frequencies)))
+            low = max(0, i - bin_size // 2)  # Clamps the kernel at the beginning of the signal 
+            up = min(len(lc.flux), i + bin_size // 2)  # Clamps the kernel at the end of the signal
+            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
+            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f))
+        ax.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
+        ax.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
         """
-        # Test 2: Simply multiplying the flux by the sine curve
-        """
-        flux_weighted = lc.flux * np.cos(lc.phase * f)
-        ax.plot(lc.phase, flux_weighted - np.mean(flux_weighted) - spacing * idx, c=cmap(idx / len(frequencies)))
-        """
-        
-    fig.colorbar(cmap_sm, label="Frequency", cax=cax)
+        # Test 2: Calculating the weighted moving average of the flux values cutting off values on the edges
+        flux_avg_sin = np.zeros_like(lc.phase)
+        flux_avg_cos = np.zeros_like(lc.phase)
+        for i in range(bin_size // 2, len(lc.flux) - bin_size // 2):
+            low = i - bin_size // 2  
+            up = i + bin_size // 2
+            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
+            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f))
+        ax.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
+        ax.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
 
 if __name__ == "__main__":
 
@@ -126,8 +127,7 @@ if __name__ == "__main__":
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
     period_grid = getPeriodRange(period=period, buffer=1 / (24 * 60))
-    lc_folded = lc.fold(period)
-    transits_cut = cut(lc.time, lc.flux, period)
+    lc_folded = lc.fold(period).copy().sortToPhase()
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
     # print(f"Standard deviation of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
     spacing = np.nanstd(lc.flux) * 2.5
@@ -135,10 +135,10 @@ if __name__ == "__main__":
     frequencies = [2 * math.pi * i for i in range(16)]
 
     # Producing a variety of informative plots and interactive plots
-    # produceFrequencyBinPlots(lc_folded, spacing, frequencies)
+    produceFrequencyBinPlots(lc_folded, spacing, frequencies)
     # produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
     # produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="mean", time_bin_size=1)
-    produceQuarterFoldPlots(lc_list=lc_list, time_list=time_list, period=period, spacing=spacing, bin_mode="mean", time_bin_size=1, include_boot=True, n_samples=50)
+    # produceQuarterFoldPlots(lc_list=lc_list, time_list=time_list, period=period, spacing=spacing, bin_mode="mean", time_bin_size=1, include_boot=True, n_samples=50)
     # produceQuarterPeriodPlots(time_list=time_list, period_list=period_list)
     # produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
     # produceFoldPlotsAnimation(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
