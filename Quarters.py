@@ -54,23 +54,51 @@ def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
         for i, flux in enumerate(lc.flux):
             low = max(0, i - bin_size // 2)  # Clamps the kernel at the beginning of the signal 
             up = min(len(lc.flux), i + bin_size // 2)  # Clamps the kernel at the end of the signal
-            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
-            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f))
-        ax.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
-        ax.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
+            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+        # Ploting the weighted averages
+        ax1.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
+        ax1.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
+        # Plotting the weights 
+        ax2.plot(lc.phase, np.sin(lc.phase * f) - 3 * idx, c="r")
+        ax2.plot(lc.phase, np.cos(lc.phase * f) - 3 * idx, c="b")
         """
+        
         # Test 2: Calculating the weighted moving average of the flux values cutting off values on the edges
-        flux_avg_sin = np.zeros_like(lc.phase)
-        flux_avg_cos = np.zeros_like(lc.phase)
+        """
+        flux_avg_sin = np.zeros(len(lc.phase) - bin_size + 1)
+        flux_avg_cos = np.zeros(len(lc.phase) - bin_size + 1)
         for i in range(bin_size // 2, len(lc.flux) - bin_size // 2):
             low = i - bin_size // 2  
             up = i + bin_size // 2
-            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
-            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
-        ax1.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
-        ax1.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
+            flux_avg_sin[i - bin_size // 2] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+            flux_avg_cos[i - bin_size // 2] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+        # Plotting the weighted averages, cutting of the phase values in the same way the flux values were cut off
+        ax1.plot(lc.phase[bin_size // 2:-bin_size // 2 + 1], flux_avg_sin - spacing * idx, c="r")
+        ax1.plot(lc.phase[bin_size // 2:-bin_size // 2 + 1], flux_avg_cos - spacing * idx, c="b")
+        # Plotting the weights 
         ax2.plot(lc.phase, np.sin(lc.phase * f) - 3 * idx, c="r")
         ax2.plot(lc.phase, np.cos(lc.phase * f) - 3 * idx, c="b")
+        """
+        
+        # Test 3: Calculating the weighted moving average of the flux values padding the flux and phase values
+        """
+        flux_padded = np.pad(lc.flux, (bin_size // 2, bin_size // 2))
+        phase_padded = np.pad(lc.phase, (bin_size // 2, bin_size // 2))
+        flux_avg_sin = np.zeros_like(lc.phase)
+        flux_avg_cos = np.zeros_like(lc.phase)
+        for i in range(len(lc.flux)):
+            up = i + bin_size
+            flux_avg_sin[i] = np.average(flux_padded[i:up], weights=np.sin(phase_padded[i:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+            flux_avg_cos[i] = np.average(flux_padded[i:up], weights=np.cos(phase_padded[i:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+        # Plotting the weighted averages
+        ax1.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
+        ax1.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
+        # Plotting the weights
+        ax2.plot(lc.phase, np.sin(lc.phase * f) - 3 * idx, c="r")
+        ax2.plot(lc.phase, np.cos(lc.phase * f) - 3 * idx, c="b")
+        """
+        
 
 if __name__ == "__main__":
 
@@ -139,7 +167,7 @@ if __name__ == "__main__":
     frequencies = [2 * math.pi * i for i in range(25)]
 
     # Producing a variety of informative plots and interactive plots
-    produceFrequencyBinPlots(lc_folded, spacing, frequencies)
+    produceFrequencyBinPlots(lc_folded, spacing, frequencies, time_bin_size=1)
     # produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
     # produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="mean", time_bin_size=1)
     # produceQuarterFoldPlots(lc_list=lc_list, time_list=time_list, period=period, spacing=spacing, bin_mode="mean", time_bin_size=1, include_boot=True, n_samples=50)

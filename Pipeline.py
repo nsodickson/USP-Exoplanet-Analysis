@@ -578,9 +578,7 @@ if __name__ == "__main__":
     smooth_func = lambda x: filter(x, filter_type=lowPassGaussian, cutoff=filter_cutoff)
 
     # Preforming residual resampling with a custom function
-    """
-    samples = customResidualBootstrap(lc_folded.flux, n_samples=n_samples, block_size=10, smooth_func=smooth_func)
-    """
+    # samples = customResidualBootstrap(lc_folded.flux, n_samples=n_samples, block_size=10, smooth_func=smooth_func)
 
     # Preforming classic resampling with a custom function
     phase_samples, samples = customBootstrap(lc_folded.phase, lc_folded.flux, n_samples=n_samples)
