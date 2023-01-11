@@ -36,13 +36,15 @@ def produceQuarterFoldPlots(lc_list, time_list, period, spacing, bin_mode="media
 
 def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
     # Precondition: lc is folded on the best fit period
-    fig, ax = plt.subplots()
+    fig, (ax1, ax2) = plt.subplots(1, 2)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
 
     bin_size = time_bin_size * 48 - 1  # Adjust for differently spaced data (currently 30 minute cadence)
 
-    ax.set_title("Folded Light Curves Weighted With Varying Angular Frequencies (Red=Sine, Blue=Cosine)")
-    ax.set_xlabel("Phase")
+    ax1.set_title("Folded Light Curves Weighted With Varying Frequencies")
+    ax2.set_title("Sine and Cosine curves used as weights")
+    ax1.set_xlabel("Phase")
+    ax2.set_xlabel("Phase")
 
     for idx, f in enumerate(frequencies):
         # Test 1: Calculating the weighted moving average of the flux values clamping the kernel at the edges so the shape stays the same
@@ -63,10 +65,12 @@ def produceFrequencyBinPlots(lc, spacing, frequencies, time_bin_size=5):
         for i in range(bin_size // 2, len(lc.flux) - bin_size // 2):
             low = i - bin_size // 2  
             up = i + bin_size // 2
-            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f))
-            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f))
-        ax.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
-        ax.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
+            flux_avg_sin[i] = np.average(lc.flux[low:up], weights=np.sin(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+            flux_avg_cos[i] = np.average(lc.flux[low:up], weights=np.cos(lc.phase[low:up] * f) + 1)  # +1 to prevent weights that add to zero, temporary solution
+        ax1.plot(lc.phase, flux_avg_sin - spacing * idx, c="r")
+        ax1.plot(lc.phase, flux_avg_cos - spacing * idx, c="b")
+        ax2.plot(lc.phase, np.sin(lc.phase * f) - 3 * idx, c="r")
+        ax2.plot(lc.phase, np.cos(lc.phase * f) - 3 * idx, c="b")
 
 if __name__ == "__main__":
 
@@ -132,7 +136,7 @@ if __name__ == "__main__":
     # print(f"Standard deviation of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
     spacing = np.nanstd(lc.flux) * 2.5
 
-    frequencies = [2 * math.pi * i for i in range(16)]
+    frequencies = [2 * math.pi * i for i in range(25)]
 
     # Producing a variety of informative plots and interactive plots
     produceFrequencyBinPlots(lc_folded, spacing, frequencies)
