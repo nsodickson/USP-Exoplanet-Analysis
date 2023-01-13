@@ -69,13 +69,13 @@ class LC:
     
     def sortToTime(self):
         sort_idx = np.argsort(self.time)
-        self.time, self.flux = self.time[sort_idx], self.flux[sort_idx]
+        self.time, self.phase, self.flux = self.time[sort_idx], self.phase[sort_idx], self.flux[sort_idx]
         return self
 
     def sortToPhase(self):
         if self.has_folded:
             sort_idx = np.argsort(self.phase)
-            self.phase, self.flux = self.phase[sort_idx], self.flux[sort_idx]
+            self.phase, self.time, self.flux = self.phase[sort_idx], self.time[sort_idx], self.flux[sort_idx]
         return self
 
     def copy(self):
@@ -122,11 +122,7 @@ def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_bu
     return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
-def bin(y, bin_size=None, time_bin_size=None, weights=None, mode="median"):
-    if bin_size is None and time_bin_size is None:
-        bin_size = 47  # Adjust for data without a 30 minute cadence
-    elif bin_size is None:
-        bin_size = time_bin_size * 48 - 1  # Adjust for data without a 30 minute cadence
+def bin(y, bin_size, weights=None, mode="median"):
     if mode == "median":
         return scipy.signal.medfilt(y, kernel_size=bin_size)
     elif mode == "mean":
@@ -137,6 +133,25 @@ def bin(y, bin_size=None, time_bin_size=None, weights=None, mode="median"):
         return np.convolve(np.pad(y, (bin_size // 2, bin_size // 2)), weights, mode="valid")
     else:
         print("Invalid mode for binning")
+
+
+def timeBin(x, y, time_bin_size=None, bins=None, aggregate_func=np.mean):
+    # Creates the array of time bins
+    if bins is None:
+        bins = np.arange(np.min(x), np.max(x), time_bin_size)  
+
+    # Initialized the binned arrays with zeros
+    x_binned = np.zeros((len(bins) - 1))
+    y_binned = np.zeros((len(bins) - 1))
+
+    # Splits the data into time bins using indices, indexes the data to access the bins, and preforms the aggregation function on the bins
+    bin_locs = np.digitize(x, bins)
+    for idx in range(1, len(bins)):
+        bin = np.where(bin_locs == idx)
+        x_binned[idx - 1] = aggregate_func(bins[idx-1:idx+1])
+        y_binned[idx - 1] = aggregate_func(y[bin])
+
+    return x_binned, y_binned
 
 
 def fillNans(y):
@@ -326,16 +341,15 @@ def fold(time, period, epoch=0):
     return (time - epoch) / period % 1
 
 
-def produceFoldPlots(time, flux, period, bin_mode="median", time_bin_size=5):
+def produceFoldPlots(time, flux, period, include_binned=True, **kwargs):
     plt.figure(figsize=winSize)
 
     phase = fold(time, period)
-    sort_index = np.argsort(phase)
-    phase_sorted, flux_sorted = phase[sort_index], flux[sort_index]
-    flux_binned = bin(flux_sorted, time_bin_size=time_bin_size, mode=bin_mode)
-
     plt.scatter(phase, flux, s=0.5, label="Phase folded light curve")
-    plt.plot(phase_sorted, flux_binned, color="r", label="Binned phase folded light curve")
+    if include_binned:
+        phase_binned, flux_binned = timeBin(phase, flux, **kwargs)
+        plt.plot(phase_binned, flux_binned, color="r", label="Binned phase folded light curve")
+
     plt.title(f"Phase folded light curve with period: {period}")
     plt.xlabel("Phase")
     plt.ylabel("Flux (Normalized Units)")
@@ -348,7 +362,7 @@ def produceFoldPlotsAnimation(time, flux, period_grid, duration, write=False):
     fig.suptitle("Phase Folded Light Curve and BLS Power With Varying Periods")
 
     plt.subplot(2, 1, 1)
-    ax1.set_xlim(-0.2, 0.2)
+    ax1.set_xlim(0, 1)
     ax1.set_ylim(np.min(flux) - np.std(flux), np.max(flux) + np.std(flux))
     scatter, = ax1.plot([], [], linewidth=0, marker='o', markersize=0.5)
     plt.xlabel("Phase")
@@ -523,7 +537,7 @@ if __name__ == "__main__":
     """
 
     # Initialize Target Constants
-    target = "Kepler-78 b"
+    target = "Kepler-1520 b"
     if target in sp_csv.index:
         target_period_range = getPeriodRange(period=sp_csv.loc[target, "pl_orbper"])
         target_duration = sp_csv.loc[target, "pl_trandur"] / 24
@@ -534,7 +548,7 @@ if __name__ == "__main__":
         print("Warning, target not found in provided CSV file")
         target_period_range = None
         target_duration = 1/24
-    quarter = 2
+    quarter = 16
     filter_cutoff = 1
 
     print("=" * 100)
@@ -556,14 +570,13 @@ if __name__ == "__main__":
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
     period_grid = getPeriodRange(period=period, buffer=1/(24*60))
-    lc_folded = lc.fold(period).copy().sortToPhase()
     print(f"Period of {target} obtained from BLS periodogram: {period} Days or {period * 24} Hours")
-
+    lc.fold(period)
     print("=" * 100)
 
     # Producing a variety of informative plots and interactive plots
-    # produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
-    # produceFoldPlots(time=lc.time, flux=lc.flux, period=period, bin_mode="median", time_bin_size=1)
+    produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
+    produceFoldPlots(time=lc.time, flux=lc.flux, period=period, include_binned=True, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
     # produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
     # produceFoldPlotsAnimation(lc.time, lc.flux, period_grid, target_duration)
 
@@ -574,29 +587,18 @@ if __name__ == "__main__":
     fig, (ax1) = plt.subplots(1, 1)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
     ax1.set_title(f"Bootstrapped Folded Light Curve ({n_samples} samples)")  
-    # ax2.set_title("Residuals Used for Bootstrapping")  
-    smooth_func = lambda x: filter(x, filter_type=lowPassGaussian, cutoff=filter_cutoff)
 
-    # Preforming residual resampling with a custom function
-    # samples = customResidualBootstrap(lc_folded.flux, n_samples=n_samples, block_size=10, smooth_func=smooth_func)
+    ax1.scatter(lc.phase, lc.flux, s=2)
 
     # Preforming classic resampling with a custom function
-    phase_samples, samples = customBootstrap(lc_folded.phase, lc_folded.flux, n_samples=n_samples)
+    phase_samples, samples = customBootstrap(lc.phase, lc.flux, n_samples=n_samples)
 
-    # Plotting the original folded transit data and the bootstrap samples on top
-    flux_binned = bin(lc_folded.flux, mode="median", time_bin_size=1)
-    smooth_data = smooth_func(lc_folded.flux)
-    samples = np.apply_along_axis(lambda x: bin(x, mode="median", time_bin_size=1), 1, samples)
-    upper = np.apply_along_axis(lambda x: np.percentile(x, 95), 0, samples)
-    lower = np.apply_along_axis(lambda x: np.percentile(x, 5), 0, samples)
-
-    ax1.scatter(lc_folded.phase, lc_folded.flux, s=2)
-    # ax1.fill_between(phase, lower, upper, alpha=0.8, color="orange")
+    # Plotting the bootstrap samples
     for p, f in zip(phase_samples, samples):
-        ax1.plot(p, f, alpha=0.3, color="orange")
-    ax1.plot(lc_folded.phase, flux_binned, color="r")
-    # ax1.plot(phase, smooth_data, color="g")
-    # ax2.scatter(lc_folded.phase, lc_folded.flux-smooth_data, s=2)
+        p_binned, f_binned = timeBin(p, f, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
+        ax1.plot(p_binned, f_binned, alpha=0.3, c="orange")
+    phase_binned, flux_binned = timeBin(lc.phase, lc.flux, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
+    ax1.plot(phase_binned, flux_binned, c="r")
     # ===============================================================================================
 
     plt.show()
