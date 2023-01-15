@@ -18,12 +18,12 @@ sp_csv.set_index(keys="pl_name", inplace=True)
 sp_csv.drop_duplicates(inplace=True)
 
 # Kep78 Info, In Days
-kep78b_baseline = 1424.89596
+kep78b_timeline = 1424.89596
 kep78b_period = 0.3550074
 kep78b_duration = 0.0339167 
 
 # Kepler-1520b Info, In Days
-kep1520b_baseline = 1459.4893630790102
+kep1520b_timeline = 1459.4893630790102
 kep1520b_period = 0.6535555
 kep1520b_duration = 0.0679167
 
@@ -112,13 +112,13 @@ def dataFromHDU(hdu, include_image=False, flux_column_name="SAP_FLUX"):
         return LC(time, flux)
 
 
-def getPeriodRange(period, baseline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None, spacing_coeff=0.01):
+def getPeriodRange(period, timeline=4.1*365, buffer=1/24, low_buffer=None, up_buffer=None, spacing_coeff=0.01):
     # In Days
     if low_buffer is None:
         low_buffer = buffer
     if up_buffer is None:
         up_buffer = buffer
-    spacing = spacing_coeff * (period  ** 2 / baseline) 
+    spacing = spacing_coeff * (period  ** 2 / timeline) 
     return np.arange(period - low_buffer, period + up_buffer, spacing)  
 
 
@@ -565,7 +565,7 @@ if __name__ == "__main__":
     lc.flux = lc.flux/trend - 1.0
     lc.time, lc.flux, num_outliers = removeOutliers(lc.time, lc.flux, n_sigma=8)
     print(f"{num_nans} nan flux values were filled in, {num_outliers} outliers were removed")
-    print(f"Number of data points: {len(lc.time)}, Baseline: {lc.time[-1] - lc.time[0]} days")
+    print(f"Number of data points: {len(lc.time)}, timeline: {lc.time[-1] - lc.time[0]} days")
 
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)

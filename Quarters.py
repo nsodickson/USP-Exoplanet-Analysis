@@ -8,6 +8,7 @@ def produceQuarterPeriodPlots(time, period_list):
     plt.xlabel("Time (Days)")
     plt.ylabel("Best fit period (days)")
 
+
 def produceTimeBinPlots(time, lc_list, period, spacing, include_boot=False, n_samples=25, **kwargs):
     fig, ax = plt.subplots()
     fig.set(figheight=winSize[1], figwidth=winSize[0])
@@ -34,6 +35,7 @@ def produceTimeBinPlots(time, lc_list, period, spacing, include_boot=False, n_sa
 
     fig.colorbar(cmap_sm, label="Median Quarter Time (Days)", cax=cax)
 
+
 def produceFrequencyBinPlots(time, lc_list, period, spacing, frequencies, **kwargs):
     fig, (ax1, ax2) = plt.subplots(1, 2)
     fig.set(figheight=winSize[1], figwidth=winSize[0])
@@ -41,7 +43,7 @@ def produceFrequencyBinPlots(time, lc_list, period, spacing, frequencies, **kwar
     ax1.set_title("Folded Light Curves Weighted With Varying Frequencies")
     ax2.set_title("Sine and Cosine curves used as weights")
     ax1.set_xlabel("Phase")
-    ax2.set_xlabel("Phase")
+    ax2.set_xlabel("Time")
 
     lc_avg = 0
     for n, lc in enumerate(lc_list):
@@ -69,7 +71,7 @@ def produceFrequencyBinPlots(time, lc_list, period, spacing, frequencies, **kwar
 if __name__ == "__main__":
 
     # Initialize target constants
-    target = "Kepler-78 b"
+    target = "Kepler-1520 b"
     if target in sp_csv.index:
         target_period_range = getPeriodRange(sp_csv.loc[target, "pl_orbper"])
         target_duration = sp_csv.loc[target, "pl_trandur"] / 24
@@ -104,7 +106,7 @@ if __name__ == "__main__":
         quarter_lc.flux = quarter_lc.flux / trend - 1.0 
         quarter_lc.time, quarter_lc.flux, num_outliers = removeOutliers(quarter_lc.time, quarter_lc.flux, n_sigma=8)
         print(f"{num_nans} nan flux values were filled in, {num_outliers} outliers were removed")
-        print(f"Number of data points: {len(quarter_lc.time)}, Baseline: {quarter_lc.time[-1] - quarter_lc.time[0]} days")
+        print(f"Number of data points: {len(quarter_lc.time)}, timeline: {quarter_lc.time[-1] - quarter_lc.time[0]} days, Median Time: {time_list[idx]}")
 
         # Obtaining best fits periods
         """
@@ -119,8 +121,8 @@ if __name__ == "__main__":
 
     print("=" * 100)
 
-    baseline = lc.time[-1] - lc.time[0]
-    print(f"Number of data points: {len(lc.time)}, Baseline: {baseline} days")
+    timeline = lc.time[-1] - lc.time[0]
+    print(f"Number of data points: {len(lc.time)}, timeline: {timeline} days")
 
     # Obtaining new data and constants with a variety of data analysis techniques
     period = getPeriod(lc.time, lc.flux, duration=target_duration, period=target_period_range)
@@ -130,12 +132,12 @@ if __name__ == "__main__":
     # print(f"Standard deviation of periods with quarter 0: {np.std(periods)}, without quarter 0: {np.std(periods[1:])}")
     spacing = np.nanstd(lc.flux) * 2.5
 
-    frequencies = [i * (2 * math.pi / baseline) for i in range(1, 17)]
+    frequencies = [i * (2 * math.pi / (timeline)) for i in range(1, 17)]
 
     # Producing a variety of informative plots and interactive plots
     produceBLSPeriodogramPlots(time=lc.time, flux=lc.flux, duration=target_duration, period=target_period_range)
     produceFoldPlots(time=lc.time, flux=lc.flux, period=period, include_binned=True, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
-    # produceTimeBinPlots(time=time_list, lc_list=lc_list, period=period, spacing=spacing, include_boot=True, n_samples=50, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
+    produceTimeBinPlots(time=time_list, lc_list=lc_list, period=period, spacing=spacing, include_boot=True, n_samples=50, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
     produceFrequencyBinPlots(time=time_list, lc_list=lc_list, period=period, spacing=spacing * 4, frequencies=frequencies, bins=np.arange(0, 1.01, 0.01), aggregate_func=np.mean)
     # produceQuarterPeriodPlots(time=time_list, period_list=period_list)
     # produceFoldPlotsInteractive(time=lc.time, flux=lc.flux, period_grid=period_grid, duration=target_duration)
